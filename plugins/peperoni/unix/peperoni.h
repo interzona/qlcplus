@@ -22,7 +22,7 @@
 
 #include <QStringList>
 #include <QtPlugin>
-#include <QList>
+#include <QHash>
 
 #include "qlcioplugin.h"
 
@@ -64,10 +64,10 @@ public:
      *********************************************************************/
 public:
     /** @reimp */
-    void openOutput(quint32 output);
+    bool openOutput(quint32 output, quint32 universe);
 
     /** @reimp */
-    void closeOutput(quint32 output);
+    void closeOutput(quint32 output, quint32 universe);
 
     /** @reimp */
     QStringList outputs();
@@ -83,20 +83,16 @@ public:
      *************************************************************************/
 public:
     /** @reimp */
-    void openInput(quint32 input) { Q_UNUSED(input); }
+    bool openInput(quint32 input, quint32 universe);
 
     /** @reimp */
-    void closeInput(quint32 input) { Q_UNUSED(input); }
+    void closeInput(quint32 input, quint32 universe);
 
     /** @reimp */
-    QStringList inputs() { return QStringList(); }
+    QStringList inputs();
 
     /** @reimp */
-    QString inputInfo(quint32 input) { Q_UNUSED(input); return QString(); }
-
-    /** @reimp */
-    void sendFeedBack(quint32 input, quint32 channel, uchar value, const QString& key)
-        { Q_UNUSED(input); Q_UNUSED(channel); Q_UNUSED(value); Q_UNUSED(key); }
+    QString inputInfo(quint32 input);
 
     /*********************************************************************
      * Configuration
@@ -116,11 +112,18 @@ public:
 
 protected:
     /** Get a PeperoniDevice entry by its usbdev struct */
-    PeperoniDevice* device(struct usb_device* usbdev);
+    bool device(struct usb_device* usbdev);
 
 protected:
     /** List of available devices */
-    QList <PeperoniDevice*> m_devices;
+    QHash <quint32, PeperoniDevice*> m_devices;
+
+    /********************************************************************
+     * Hotplug
+     ********************************************************************/
+public slots:
+    void slotDeviceAdded(uint vid, uint pid);
+    void slotDeviceRemoved(uint vid, uint pid);
 };
 
 #endif

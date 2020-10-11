@@ -4,7 +4,7 @@ TEMPLATE = app
 LANGUAGE = C++
 TARGET   = scene_test
 
-QT      += testlib xml script
+QT      += testlib
 CONFIG  -= app_bundle
 
 DEPENDPATH   += ../../src
@@ -16,4 +16,5 @@ QMAKE_LIBDIR += ../../src
 LIBS         += -lqlcplusengine
 
 SOURCES += scene_test.cpp ../mastertimer/mastertimer_stub.cpp
-HEADERS += scene_test.h ../mastertimer/mastertimer_stub.h
+HEADERS += scene_test.h ../mastertimer/mastertimer_stub.h ../common/resource_paths.h
+

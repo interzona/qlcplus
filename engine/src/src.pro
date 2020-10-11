@@ -1,31 +1,42 @@
 include(../../variables.pri)
-include(../../coverage.pri)
-include(../../hotplugmonitor/hotplugmonitor.pri)
+!android:!ios {
+ include(../../coverage.pri)
+ include(../../hotplugmonitor/hotplugmonitor.pri)
+}
 
 TEMPLATE = lib
 LANGUAGE = C++
 TARGET   = qlcplusengine
 
-CONFIG  += qt
-QT      += core xml script gui
-greaterThan(QT_MAJOR_VERSION, 4): QT += widgets multimedia
+QT      += core gui
+greaterThan(QT_MAJOR_VERSION, 4) {
+  QT += multimedia
+  macx:QT_CONFIG -= no-pkg-config
+  win32:QT += widgets
+}
 
-# Uncomment to enable Phonon audio support
-#QT += phonon
+qmlui {
+  QT += qml
+} else {
+  QT += script
+}
+
 CONFIG += link_pkgconfig
 
-QTPLUGIN =
+#QTPLUGIN =
 
-INCLUDEPATH += ./audio ../../plugins/interfaces
+INCLUDEPATH += ../audio/src ../../plugins/interfaces
 win32:LIBS  += -lwinmm
 win32:QMAKE_LFLAGS += -shared
 win32:INCLUDEPATH += ./
 
+!android:!ios {
 DEPENDPATH  += ../../hotplugmonitor/src
 INCLUDEPATH += ../../hotplugmonitor/src
 LIBS        += -L../../hotplugmonitor/src -lhotplugmonitor
+}
 
-
+LIBS        += -L../audio/src -lqlcplusaudio
 
 #############################################################################
 # Sources
@@ -44,32 +55,25 @@ HEADERS += avolitesd4parser.h \
            qlcinputchannel.h \
            qlcinputprofile.h \
            qlcinputsource.h \
+           qlcmodifierscache.h \
+           qlcpalette.h \
            qlcphysical.h \
-           qlccapability.h
-# Audio
-HEADERS += audio/audio.h \
-           audio/audiodecoder.h \
-           audio/audiorenderer.h \
-           audio/audioparameters.h \
-           audio/audiocapture.h
+           utils.h
 
-lessThan(QT_MAJOR_VERSION, 5) {
-  unix:!macx:HEADERS += audio/audiorenderer_alsa.h audio/audiocapture_alsa.h
-  win32:HEADERS += audio/audiorenderer_waveout.h audio/audiocapture_wavein.h
-}
-else {
-  HEADERS += audio/audiorenderer_qt.h audio/audiocapture_qt.h
+greaterThan(QT_MAJOR_VERSION, 4) {
+  HEADERS += video.h
 }
 
 # Engine
 HEADERS += bus.h \
            channelsgroup.h \
+           channelmodifier.h \
            chaser.h \
+           chaseraction.h \
            chaserrunner.h \
            chaserstep.h \
            collection.h \
            cue.h \
-           cuelistrunner.h \
            cuestack.h \
            doc.h \
            dmxdumpfactoryproperties.h \
@@ -82,6 +86,7 @@ HEADERS += bus.h \
            function.h \
            genericdmxsource.h \
            genericfader.h \
+           gradient.h \
            grandmaster.h \
            grouphead.h \
            inputoutputmap.h \
@@ -93,17 +98,28 @@ HEADERS += bus.h \
            qlcclipboard.h \
            qlcpoint.h \
            rgbalgorithm.h \
+           rgbaudio.h \
            rgbmatrix.h \
            rgbimage.h \
-           rgbscript.h \
+           rgbplain.h \
+           rgbscriptproperty.h \
+           rgbscriptscache.h \
            rgbtext.h \
            scene.h \
            scenevalue.h \
-           script.h \
+           scriptwrapper.h \
+           sequence.h \
            show.h \
+           showfunction.h \
            showrunner.h \
            track.h \
            universe.h
+
+qmlui {
+  HEADERS += rgbscriptv4.h scriptrunner.h scriptv4.h
+} else {
+  HEADERS += rgbscript.h script.h
+}
 
 win32:HEADERS += mastertimer-win32.h
 unix:HEADERS  += mastertimer-unix.h
@@ -121,44 +137,23 @@ SOURCES += avolitesd4parser.cpp \
            qlcinputchannel.cpp \
            qlcinputprofile.cpp \
            qlcinputsource.cpp \
+           qlcmodifierscache.cpp \
+           qlcpalette.cpp \
            qlcphysical.cpp
 
-# Audio
-SOURCES += audio/audio.cpp \
-           audio/audiodecoder.cpp \
-           audio/audiorenderer.cpp \
-           audio/audioparameters.cpp \
-           audio/audiocapture.cpp
-
-lessThan(QT_MAJOR_VERSION, 5) {
-  unix:!macx:SOURCES += audio/audiorenderer_alsa.cpp audio/audiocapture_alsa.cpp
-  win32:SOURCES += audio/audiorenderer_waveout.cpp audio/audiocapture_wavein.cpp
-
-  macx {
-    system(pkg-config --exists portaudio-2.0) {
-      DEFINES += HAS_PORTAUDIO
-      PKGCONFIG += portaudio-2.0
-      HEADERS += audio/audiorenderer_portaudio.h audio/audiocapture_portaudio.h
-      SOURCES += audio/audiorenderer_portaudio.cpp audio/audiocapture_portaudio.cpp
-    }
-
-  #  HEADERS += audio/audiorenderer_coreaudio.h
-  #  SOURCES += audio/audiorenderer_coreaudio.cpp
-  }
-}
-else {
-  SOURCES += audio/audiorenderer_qt.cpp audio/audiocapture_qt.cpp
+greaterThan(QT_MAJOR_VERSION, 4) {
+  SOURCES += video.cpp
 }
 
 # Engine
 SOURCES += bus.cpp \
            channelsgroup.cpp \
+           channelmodifier.cpp \
            chaser.cpp \
            chaserrunner.cpp \
            chaserstep.cpp \
            collection.cpp \
            cue.cpp \
-           cuelistrunner.cpp \
            cuestack.cpp \
            doc.cpp \
            dmxdumpfactoryproperties.cpp \
@@ -170,6 +165,7 @@ SOURCES += bus.cpp \
            function.cpp \
            genericdmxsource.cpp \
            genericfader.cpp \
+           gradient.cpp \
            grandmaster.cpp \
            grouphead.cpp \
            inputoutputmap.cpp \
@@ -181,44 +177,43 @@ SOURCES += bus.cpp \
            qlcclipboard.cpp \
            qlcpoint.cpp \
            rgbalgorithm.cpp \
+           rgbaudio.cpp \
            rgbmatrix.cpp \
            rgbimage.cpp \
-           rgbscript.cpp \
+           rgbplain.cpp \
+           rgbscriptscache.cpp \
            rgbtext.cpp \
            scene.cpp \
            scenevalue.cpp \
-           script.cpp \
+           sequence.cpp \
            show.cpp \
+           showfunction.cpp \
            showrunner.cpp \
            track.cpp \
            universe.cpp
 
+qmlui {
+  SOURCES += rgbscriptv4.cpp scriptrunner.cpp scriptv4.cpp
+} else {
+  SOURCES += rgbscript.cpp script.cpp
+}
+
 win32:SOURCES += mastertimer-win32.cpp
 unix:SOURCES  += mastertimer-unix.cpp
 
-system(pkg-config --exists mad) {
-    DEFINES += HAS_LIBMAD
-    PKGCONFIG += mad
-    HEADERS += audio/audiodecoder_mad.h
-    SOURCES += audio/audiodecoder_mad.cpp
-}
-
-system(pkg-config --exists sndfile) {
-    DEFINES += HAS_LIBSNDFILE
-    PKGCONFIG += sndfile
-    HEADERS += audio/audiodecoder_sndfile.h
-    SOURCES += audio/audiodecoder_sndfile.cpp
-}
-
-system(pkg-config --exists fftw3) {
+!android:!ios {
+  system(pkg-config --exists fftw3) {
+    DEFINES += HAS_FFTW3
     PKGCONFIG += fftw3
-macx:LIBS += -lfftw3
-}
+    macx:LIBS += -lfftw3
+  }
 
-unix:!macx:LIBS += -lasound
+  unix:!macx:LIBS += -lasound
+}
 
 # Interfaces
 HEADERS += ../../plugins/interfaces/qlcioplugin.h
+SOURCES += ../../plugins/interfaces/qlcioplugin.cpp
 
 #############################################################################
 # Installation
@@ -228,7 +223,7 @@ macx {
     LIBS += -framework CoreFoundation -framework CoreAudio -framework AudioToolbox
     # This must be after "TARGET = " and before target installation so that
     # install_name_tool can be run before target installation
-    include(../../macx/nametool.pri)
+    include(../../platforms/macos/nametool.pri)
 }
 
 target.path = $$INSTALLROOT/$$LIBSDIR
@@ -245,7 +240,7 @@ PRE_TARGETDEPS += $$CONFIGFILE
 QMAKE_CLEAN += $$CONFIGFILE
 QMAKE_DISTCLEAN += $$CONFIGFILE
 
-macx {
+macx|win32|appimage {
     conf.commands += echo \"$$LITERAL_HASH ifndef CONFIG_H\" > $$CONFIGFILE &&
     conf.commands += echo \"$$LITERAL_HASH define CONFIG_H\" >> $$CONFIGFILE &&
     conf.commands += echo \"$$LITERAL_HASH define APPNAME \\\"$$APPNAME\\\"\" >> $$CONFIGFILE &&
@@ -257,16 +252,25 @@ macx {
     conf.commands += echo \"$$LITERAL_HASH define USERINPUTPROFILEDIR \\\"$$USERINPUTPROFILEDIR\\\"\" >> $$CONFIGFILE &&
     conf.commands += echo \"$$LITERAL_HASH define MIDITEMPLATEDIR \\\"$$MIDITEMPLATEDIR\\\"\" >> $$CONFIGFILE &&
     conf.commands += echo \"$$LITERAL_HASH define USERMIDITEMPLATEDIR \\\"$$USERMIDITEMPLATEDIR\\\"\" >> $$CONFIGFILE &&
+    conf.commands += echo \"$$LITERAL_HASH define MODIFIERSTEMPLATEDIR \\\"$$MODIFIERSTEMPLATEDIR\\\"\" >> $$CONFIGFILE &&
+    conf.commands += echo \"$$LITERAL_HASH define USERMODIFIERSTEMPLATEDIR \\\"$$USERMODIFIERSTEMPLATEDIR\\\"\" >> $$CONFIGFILE &&
     conf.commands += echo \"$$LITERAL_HASH define FIXTUREDIR \\\"$$FIXTUREDIR\\\"\" >> $$CONFIGFILE &&
     conf.commands += echo \"$$LITERAL_HASH define USERFIXTUREDIR \\\"$$USERFIXTUREDIR\\\"\" >> $$CONFIGFILE &&
     conf.commands += echo \"$$LITERAL_HASH define PLUGINDIR \\\"$$PLUGINDIR\\\"\" >> $$CONFIGFILE &&
+    conf.commands += echo \"$$LITERAL_HASH define AUDIOPLUGINDIR \\\"$$AUDIOPLUGINDIR\\\"\" >> $$CONFIGFILE &&
     conf.commands += echo \"$$LITERAL_HASH define TRANSLATIONDIR \\\"$$TRANSLATIONDIR\\\"\" >> $$CONFIGFILE &&
     conf.commands += echo \"$$LITERAL_HASH define RGBSCRIPTDIR \\\"$$RGBSCRIPTDIR\\\"\" >> $$CONFIGFILE &&
     conf.commands += echo \"$$LITERAL_HASH define USERRGBSCRIPTDIR \\\"$$USERRGBSCRIPTDIR\\\"\" >> $$CONFIGFILE &&
     conf.commands += echo \"$$LITERAL_HASH define GOBODIR \\\"$$GOBODIR\\\"\" >> $$CONFIGFILE &&
+    conf.commands += echo \"$$LITERAL_HASH define WEBFILESDIR \\\"$$WEBFILESDIR\\\"\" >> $$CONFIGFILE &&
+qmlui {
+    conf.commands += echo \"$$LITERAL_HASH define MESHESDIR \\\"$$MESHESDIR\\\"\" >> $$CONFIGFILE &&
+    conf.commands += echo \"$$LITERAL_HASH define COLORFILTERSDIR \\\"$$COLORFILTERSDIR\\\"\" >> $$CONFIGFILE &&
+    conf.commands += echo \"$$LITERAL_HASH define USERCOLORFILTERSDIR \\\"$$USERCOLORFILTERSDIR\\\"\" >> $$CONFIGFILE &&
+}
     conf.commands += echo \"$$LITERAL_HASH endif\" >> $$CONFIGFILE
 }
-unix:!macx {
+else:unix|android|ios {
     conf.commands += echo \"$$LITERAL_HASH ifndef CONFIG_H\" > $$CONFIGFILE &&
     conf.commands += echo \"$$LITERAL_HASH define CONFIG_H\" >> $$CONFIGFILE &&
     conf.commands += echo \"$$LITERAL_HASH define APPNAME \\\"$$APPNAME\\\"\" >> $$CONFIGFILE &&
@@ -278,33 +282,34 @@ unix:!macx {
     conf.commands += echo \"$$LITERAL_HASH define USERINPUTPROFILEDIR \\\"$$USERINPUTPROFILEDIR\\\"\" >> $$CONFIGFILE &&
     conf.commands += echo \"$$LITERAL_HASH define MIDITEMPLATEDIR \\\"$$INSTALLROOT/$$MIDITEMPLATEDIR\\\"\" >> $$CONFIGFILE &&
     conf.commands += echo \"$$LITERAL_HASH define USERMIDITEMPLATEDIR \\\"$$USERMIDITEMPLATEDIR\\\"\" >> $$CONFIGFILE &&
+    conf.commands += echo \"$$LITERAL_HASH define MODIFIERSTEMPLATEDIR \\\"$$INSTALLROOT/$$MODIFIERSTEMPLATEDIR\\\"\" >> $$CONFIGFILE &&
+    conf.commands += echo \"$$LITERAL_HASH define USERMODIFIERSTEMPLATEDIR \\\"$$USERMODIFIERSTEMPLATEDIR\\\"\" >> $$CONFIGFILE &&
     conf.commands += echo \"$$LITERAL_HASH define FIXTUREDIR \\\"$$INSTALLROOT/$$FIXTUREDIR\\\"\" >> $$CONFIGFILE &&
     conf.commands += echo \"$$LITERAL_HASH define USERFIXTUREDIR \\\"$$USERFIXTUREDIR\\\"\" >> $$CONFIGFILE &&
     conf.commands += echo \"$$LITERAL_HASH define PLUGINDIR \\\"$$INSTALLROOT/$$PLUGINDIR\\\"\" >> $$CONFIGFILE &&
+    conf.commands += echo \"$$LITERAL_HASH define AUDIOPLUGINDIR \\\"$$INSTALLROOT/$$AUDIOPLUGINDIR\\\"\" >> $$CONFIGFILE &&
     conf.commands += echo \"$$LITERAL_HASH define TRANSLATIONDIR \\\"$$INSTALLROOT/$$TRANSLATIONDIR\\\"\" >> $$CONFIGFILE &&
     conf.commands += echo \"$$LITERAL_HASH define RGBSCRIPTDIR \\\"$$INSTALLROOT/$$RGBSCRIPTDIR\\\"\" >> $$CONFIGFILE &&
     conf.commands += echo \"$$LITERAL_HASH define USERRGBSCRIPTDIR \\\"$$USERRGBSCRIPTDIR\\\"\" >> $$CONFIGFILE &&
     conf.commands += echo \"$$LITERAL_HASH define GOBODIR \\\"$$INSTALLROOT/$$GOBODIR\\\"\" >> $$CONFIGFILE &&
+    conf.commands += echo \"$$LITERAL_HASH define WEBFILESDIR \\\"$$INSTALLROOT/$$WEBFILESDIR\\\"\" >> $$CONFIGFILE &&
+qmlui {
+    conf.commands += echo \"$$LITERAL_HASH define MESHESDIR \\\"$$INSTALLROOT/$$MESHESDIR\\\"\" >> $$CONFIGFILE &&
+    conf.commands += echo \"$$LITERAL_HASH define COLORFILTERSDIR \\\"$$INSTALLROOT/$$COLORFILTERSDIR\\\"\" >> $$CONFIGFILE &&
+    conf.commands += echo \"$$LITERAL_HASH define USERCOLORFILTERSDIR \\\"$$USERCOLORFILTERSDIR\\\"\" >> $$CONFIGFILE &&
+}
     conf.commands += echo \"$$LITERAL_HASH endif\" >> $$CONFIGFILE
 }
-win32 {
-    conf.commands += @echo $$LITERAL_HASH ifndef CONFIG_H > $$CONFIGFILE &&
-    conf.commands += @echo $$LITERAL_HASH define CONFIG_H >> $$CONFIGFILE &&
-    conf.commands += @echo $$LITERAL_HASH define APPNAME \"$$APPNAME\" >> $$CONFIGFILE &&
-    conf.commands += @echo $$LITERAL_HASH define FXEDNAME \"$$FXEDNAME\" >> $$CONFIGFILE &&
-    conf.commands += @echo $$LITERAL_HASH define APPVERSION \"$$APPVERSION\" >> $$CONFIGFILE &&
-    conf.commands += @echo $$LITERAL_HASH define DOCSDIR \"$$DOCSDIR\" >> $$CONFIGFILE &&
-    conf.commands += @echo $$LITERAL_HASH define INPUTPROFILEDIR \"$$INPUTPROFILEDIR\" >> $$CONFIGFILE &&
-    conf.commands += @echo $$LITERAL_HASH define USERQLCPLUSDIR \"$$USERDATADIR\" >> $$CONFIGFILE &&
-    conf.commands += @echo $$LITERAL_HASH define USERINPUTPROFILEDIR \"$$USERINPUTPROFILEDIR\" >> $$CONFIGFILE &&
-    conf.commands += @echo $$LITERAL_HASH define MIDITEMPLATEDIR \"$$MIDITEMPLATEDIR\" >> $$CONFIGFILE &&
-    conf.commands += @echo $$LITERAL_HASH define USERMIDITEMPLATEDIR \"$$USERMIDITEMPLATEDIR\" >> $$CONFIGFILE &&
-    conf.commands += @echo $$LITERAL_HASH define FIXTUREDIR \"$$FIXTUREDIR\" >> $$CONFIGFILE &&
-    conf.commands += @echo $$LITERAL_HASH define USERFIXTUREDIR \"$$USERFIXTUREDIR\" >> $$CONFIGFILE &&
-    conf.commands += @echo $$LITERAL_HASH define PLUGINDIR \"$$PLUGINDIR\" >> $$CONFIGFILE &&
-    conf.commands += @echo $$LITERAL_HASH define TRANSLATIONDIR \"$$TRANSLATIONDIR\" >> $$CONFIGFILE &&
-    conf.commands += @echo $$LITERAL_HASH define RGBSCRIPTDIR \"$$RGBSCRIPTDIR\" >> $$CONFIGFILE &&
-    conf.commands += @echo $$LITERAL_HASH define USERRGBSCRIPTDIR \"$$USERRGBSCRIPTDIR\" >> $$CONFIGFILE &&
-    conf.commands += @echo $$LITERAL_HASH define GOBODIR \"$$GOBODIR\" >> $$CONFIGFILE &&
-    conf.commands += @echo $$LITERAL_HASH endif >> $$CONFIGFILE
+
+
+# in case of a shadow build, copy CONFIGFILE back
+# to the original QLC+ source tree
+!equals(PWD, $$OUT_PWD) {
+    message("Shadow build on")
+    shadow.target = $$PWD/$$CONFIGFILE
+    shadow.commands = $(COPY) $$OUT_PWD/$$CONFIGFILE $$PWD
+    QMAKE_EXTRA_TARGETS += shadow
+    PRE_TARGETDEPS += $$PWD/$$CONFIGFILE
+    QMAKE_CLEAN += $$PWD/$$CONFIGFILE
+    QMAKE_DISTCLEAN += $$PWD/$$CONFIGFILE
 }

@@ -24,12 +24,15 @@
 #include <QMutex>
 #include <QMap>
 
+#include <function.h>
+
+class ShowFunction;
 class Function;
 class Track;
 class Show;
 class Doc;
 
-/** @addtogroup engine Engine
+/** @addtogroup engine_functions Functions
  * @{
  */
 
@@ -44,6 +47,9 @@ public:
     /** Start the runner */
     void start();
 
+    /** If running, pauses the runner and all the current running functions. */
+    void setPause(bool enable);
+
     /** Stop the runner */
     void stop();
 
@@ -56,10 +62,7 @@ private:
     Show* m_show;
 
     /** The list of Functions of the show to play */
-    QList <Function *> m_functions;
-
-    /** List of duration of each function */
-    QList <quint32> m_durations;
+    QList <ShowFunction *> m_functions;
 
     /** Elapsed time since runner start. Used also to move the cursor in MultiTrackView */
     quint32 m_elapsedTime;
@@ -67,15 +70,14 @@ private:
     /** Total time the runner has to run */
     quint32 m_totalRunTime;
 
-    /** List of running Functions and its mutex */
-    QList <Function *> m_runningQueue;
-    QMutex m_runningQueueMutex;
+    /** List of the currently running Functions and their stop time */
+    QList < QPair<Function *, quint32> > m_runningQueue;
 
-    /** Current step being played */
+    /** Index of the item in m_functions to be considered for playback */
     int m_currentFunctionIndex;
 
-private slots:
-    void slotSequenceStopped(quint32);
+private:
+    FunctionParent functionParent() const;
 
 signals:
     void timeChanged(quint32 time);

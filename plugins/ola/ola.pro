@@ -12,13 +12,29 @@ QTPLUGIN  =
 INCLUDEPATH += ../interfaces
 
 macx: {
-    #CONFIG    += link_pkgconfig
-    #PKGCONFIG += libola libolaserver
-    INCLUDEPATH += /opt/local/include
-    LIBS      += -L/opt/local/lib -lolaserver -lola -lolacommon -lprotobuf
+    #QMAKE_CXXFLAGS_X86_64 -= -mmacosx-version-min=10.5
+    #QMAKE_CXXFLAGS_X86_64 = -mmacosx-version-min=10.7
+    QMAKE_MACOSX_DEPLOYMENT_TARGET = 10.9
+
+    # Check for pkg-config and setup queries accordingly.
+    # Otherwise, use MacPorts default paths.
+    packagesExist(libola libolaserver){
+        CONFIG    += link_pkgconfig
+        PKGCONFIG += libola libolaserver
+    } else {
+        INCLUDEPATH += /opt/local/include
+        LIBS      += -L/opt/local/lib -lolaserver -lola -lolacommon
+    }
 } else {
-    LIBS      += -L/usr/local/lib -lolaserver -lola -lolacommon -lprotobuf
+    LIBS      += -L/usr/local/lib -lolaserver -lola -lolacommon
 }
+
+unix:!macx {
+   metainfo.path   = $$METAINFODIR
+   metainfo.files += org.qlcplus.QLCPlus.ola.metainfo.xml
+   INSTALLS       += metainfo
+}
+
 
 # Forms
 FORMS += configureolaio.ui
@@ -31,6 +47,7 @@ HEADERS += olaio.h \
            qlclogdestination.h
 
 # Source
+SOURCES += ../interfaces/qlcioplugin.cpp
 SOURCES += olaio.cpp \
            olaoutthread.cpp \
            configureolaio.cpp \
@@ -43,11 +60,14 @@ TRANSLATIONS += OLA_fr_FR.ts
 TRANSLATIONS += OLA_it_IT.ts
 TRANSLATIONS += OLA_nl_NL.ts
 TRANSLATIONS += OLA_cz_CZ.ts
+TRANSLATIONS += OLA_pt_BR.ts
+TRANSLATIONS += OLA_ca_ES.ts
+TRANSLATIONS += OLA_ja_JP.ts
 
 # This must be after "TARGET = " and before target installation so that
 # install_name_tool can be run before target installation
 macx {
-    include(../../macx/nametool.pri)
+    include(../../platforms/macos/nametool.pri)
 }
 
 # Installation

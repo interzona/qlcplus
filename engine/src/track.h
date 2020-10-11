@@ -1,6 +1,6 @@
 /*
-  Q Light Controller
-  fadechannel.h
+  Q Light Controller Plus
+  track.h
 
   Copyright (c) Massimo Callegari
 
@@ -21,14 +21,14 @@
 #define TRACK_H
 
 #include <QObject>
+#include <QHash>
 
-#include "chaser.h"
+#include "showfunction.h"
 #include "scene.h"
 
-class QDomDocument;
-class QDomElement;
+class QXmlStreamReader;
 
-/** @addtogroup engine Engine
+/** @addtogroup engine_functions Functions
  * @{
  */
 
@@ -37,6 +37,8 @@ class QDomElement;
 class Track : public QObject
 {
     Q_OBJECT
+
+    Q_PROPERTY(QString name READ name WRITE setName NOTIFY nameChanged)
 
     /************************************************************************
      * Initialization
@@ -68,6 +70,11 @@ public:
 private:
     quint32 m_id;
 
+public:
+    void setShowId(quint32 id);
+private:
+    quint32 m_showId;
+
     /************************************************************************
      * Name
      ************************************************************************/
@@ -78,6 +85,9 @@ public:
     /** Get the name of this track */
     QString name() const;
 
+signals:
+    void nameChanged();
+
 private:
     QString m_name;
 
@@ -85,11 +95,17 @@ private:
      * Scene
      *********************************************************************/
 public:
+    /** Set the Scene ID associated to this track */
+    void setSceneID(quint32 id);
+
     /** Return the Scene ID associated to this track */
     quint32 getSceneID();
 
 private:
-    /** Pointer to a Scene which this track represents */
+    /** ID of the Scene which this track represents
+     *  Returns Function::invalidId() if no Scene is
+     *  represented (e.g. audio/video tracks)
+     */
     quint32 m_sceneID;
 
     /*********************************************************************
@@ -107,32 +123,44 @@ private:
     bool m_isMute;
 
     /*********************************************************************
-     * Sequences
+     * Functions
      *********************************************************************/
 public:
-    /** associate a function ID to this track */
-    bool addFunctionID(quint32 id);
+    /**
+     * Add a ShowFunction with the given ID to the track.
+     * If the function doesn't exist, it creates it.
+     * In any case it returns the ShowFunction pointer
+     */
+    ShowFunction *createShowFunction(quint32 id);
 
     /** remove a function ID association from this track */
-    bool removeFunctionID(quint32 id);
+    bool removeShowFunction(ShowFunction *function, bool performDelete = true);
 
-    QList <quint32> functionsID();
+    /** add a ShowFunction element to this track */
+    bool addShowFunction(ShowFunction *func);
+
+    QList <ShowFunction *> showFunctions() const;
 
 private:
     /** List of Function IDs present in this track */
-    QList <quint32> m_functions;
+    QList <ShowFunction *> m_functions;
 
     /*********************************************************************
      * Load & Save
      *********************************************************************/
 public:
-    bool saveXML(QDomDocument* doc, QDomElement* wksp_root);
+    bool saveXML(QXmlStreamWriter *doc);
 
-    bool loadXML(const QDomElement& root);
+    bool loadXML(QXmlStreamReader &root);
+
+    bool postLoad(Doc *doc);
+
+public:
+    bool contains(Doc *doc, quint32 functionId);
+
+    QList<quint32> components();
 
 };
-
-/** @} */
 
 /** @} */
 

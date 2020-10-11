@@ -1,8 +1,9 @@
 /*
-  Q Light Controller
+  Q Light Controller Plus
   rgbalgorithm.cpp
 
   Copyright (c) Heikki Junnila
+                Massimo Callegari
 
   Licensed under the Apache License, Version 2.0 (the "License");
   you may not use this file except in compliance with the License.
@@ -17,63 +18,90 @@
   limitations under the License.
 */
 
-#include <QDomDocument>
-#include <QDomElement>
+#include <QXmlStreamReader>
+#include <QXmlStreamWriter>
 #include <QStringList>
 #include <QDebug>
 
+#include "rgbscriptscache.h"
 #include "rgbalgorithm.h"
+#include "rgbaudio.h"
 #include "rgbimage.h"
-#include "rgbscript.h"
+#include "rgbplain.h"
 #include "rgbtext.h"
+#include "doc.h"
 
-RGBAlgorithm::RGBAlgorithm(const Doc * doc)
+#ifdef QT_QML_LIB
+  #include "rgbscriptv4.h"
+#else
+  #include "rgbscript.h"
+#endif
+
+RGBAlgorithm::RGBAlgorithm(Doc * doc)
     : m_doc(doc)
+    , m_startColor(QColor())
+    , m_endColor(QColor())
 {
+}
+
+void RGBAlgorithm::setColors(QColor start, QColor end)
+{
+    m_startColor = start;
+    m_endColor = end;
 }
 
 /****************************************************************************
  * Available algorithms
  ****************************************************************************/
 
-QStringList RGBAlgorithm::algorithms(const Doc * doc)
+QStringList RGBAlgorithm::algorithms(Doc * doc)
 {
     QStringList list;
+    RGBPlain plain(doc);
     RGBText text(doc);
     RGBImage image(doc);
+    RGBAudio audio(doc);
+    list << plain.name();
     list << text.name();
     list << image.name();
-    list << RGBScript::scriptNames(doc);
+    list << audio.name();
+    list << doc->rgbScriptsCache()->names();
     return list;
 }
 
-RGBAlgorithm* RGBAlgorithm::algorithm(const Doc * doc, const QString& name)
+RGBAlgorithm* RGBAlgorithm::algorithm(Doc * doc, const QString& name)
 {
     RGBText text(doc);
     RGBImage image(doc);
+    RGBAudio audio(doc);
+    RGBPlain plain(doc);
     if (name == text.name())
         return text.clone();
     else if (name == image.name())
         return image.clone();
+    else if (name == audio.name())
+        return audio.clone();
+    else if (name == plain.name())
+        return plain.clone();
     else
-        return RGBScript::script(doc, name).clone();
+        return doc->rgbScriptsCache()->script(name).clone();
 }
 
 /****************************************************************************
  * Load & Save
  ****************************************************************************/
 
-RGBAlgorithm* RGBAlgorithm::loader(const Doc * doc, const QDomElement& root)
+RGBAlgorithm* RGBAlgorithm::loader(Doc * doc, QXmlStreamReader &root)
 {
     RGBAlgorithm* algo = NULL;
 
-    if (root.tagName() != KXMLQLCRGBAlgorithm)
+    if (root.name() != KXMLQLCRGBAlgorithm)
     {
         qWarning() << Q_FUNC_INFO << "RGB Algorithm node not found";
         return NULL;
     }
 
-    QString type = root.attribute(KXMLQLCRGBAlgorithmType);
+    QString type = root.attributes().value(KXMLQLCRGBAlgorithmType).toString();
     if (type == KXMLQLCRGBImage)
     {
         RGBImage image(doc);
@@ -86,11 +114,23 @@ RGBAlgorithm* RGBAlgorithm::loader(const Doc * doc, const QDomElement& root)
         if (text.loadXML(root) == true)
             algo = text.clone();
     }
+    else if (type == KXMLQLCRGBAudio)
+    {
+        RGBAudio audio(doc);
+        if (audio.loadXML(root) == true)
+            algo = audio.clone();
+    }
     else if (type == KXMLQLCRGBScript)
     {
-        RGBScript scr = RGBScript::script(doc, root.text());
+        RGBScript const& scr = doc->rgbScriptsCache()->script(root.readElementText());
         if (scr.apiVersion() > 0 && scr.name().isEmpty() == false)
             algo = scr.clone();
+    }
+    else if (type == KXMLQLCRGBPlain)
+    {
+        RGBPlain plain(doc);
+        if (plain.loadXML(root) == true)
+            algo = plain.clone();
     }
     else
     {

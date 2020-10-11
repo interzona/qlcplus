@@ -58,10 +58,10 @@ public:
      *********************************************************************/
 public:
     /** @reimp */
-    void openOutput(quint32 output);
+    bool openOutput(quint32 output, quint32 universe);
 
     /** @reimp */
-    void closeOutput(quint32 output);
+    void closeOutput(quint32 output, quint32 universe);
 
     /** @reimp */
     QStringList outputs();
@@ -71,10 +71,6 @@ public:
 
     /** @reimp */
     void writeUniverse(quint32 universe, quint32 output, const QByteArray& data);
-    
-    /** @reimp */
-    void sendFeedBack(quint32 input, quint32 channel, uchar value, const QString& key)
-        { Q_UNUSED(input); Q_UNUSED(channel); Q_UNUSED(value); Q_UNUSED(key); }
 
 public:
     /** List of outputs that have been opened */
@@ -88,10 +84,10 @@ public:
      *********************************************************************/
 public:
     /** @reimp */
-    void openInput(quint32 input);
+    bool openInput(quint32 input, quint32 universe);
 
     /** @reimp */
-    void closeInput(quint32 input);
+    void closeInput(quint32 input, quint32 universe);
 
     /** @reimp */
     QStringList inputs();
@@ -100,8 +96,9 @@ public:
     QString inputInfo(quint32 input);
 
     /** Tell the plugin to emit valueChanged signal */
-    void emitValueChanged(quint32 input, quint32 channel, uchar value) {
-        emit valueChanged(input, channel, value);
+    void emitValueChanged(quint32 universe, quint32 input, quint32 channel, uchar value)
+    {
+        emit valueChanged(universe, input, channel, value);
     }
 
 public:

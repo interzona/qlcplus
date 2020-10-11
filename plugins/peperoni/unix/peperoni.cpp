@@ -46,23 +46,29 @@ QString Peperoni::name()
 
 int Peperoni::capabilities() const
 {
-    return QLCIOPlugin::Output;
+    return QLCIOPlugin::Output | QLCIOPlugin::Input;
 }
 
 /*****************************************************************************
  * Outputs
  *****************************************************************************/
 
-void Peperoni::openOutput(quint32 output)
+bool Peperoni::openOutput(quint32 output, quint32 universe)
 {
-    if (output < quint32(m_devices.size()))
-        m_devices.at(output)->open();
+    Q_UNUSED(universe)
+    if (m_devices.contains(output) == false)
+        return false;
+
+    if (m_devices[output] != NULL)
+        return m_devices[output]->open(output, PeperoniDevice::OutputMode);
+    return false;
 }
 
-void Peperoni::closeOutput(quint32 output)
+void Peperoni::closeOutput(quint32 output, quint32 universe)
 {
-    if (output < quint32(m_devices.size()))
-        m_devices.at(output)->close();
+    Q_UNUSED(universe)
+    if (m_devices.contains(output) && m_devices[output] != NULL)
+            m_devices[output]->close(output, PeperoniDevice::OutputMode);
 }
 
 QStringList Peperoni::outputs()
@@ -70,9 +76,12 @@ QStringList Peperoni::outputs()
     QStringList list;
     int i = 1;
 
-    QListIterator <PeperoniDevice*> it(m_devices);
-    while (it.hasNext() == true)
-        list << QString("%1: %2").arg(i++).arg(it.next()->name());
+    QList <PeperoniDevice*> devList = m_devices.values();
+    foreach(PeperoniDevice* dev, devList)
+    {
+        list << QString("%1: %2").arg(i).arg(dev->name(i - 1));
+        i++;
+    }
     return list;
 }
 
@@ -88,7 +97,7 @@ QString Peperoni::pluginInfo()
 
     str += QString("<H3>%1</H3>").arg(name());
     str += QString("<P>");
-    str += tr("This plugin provides DMX output support for Peperoni DMX devices.");
+    str += tr("This plugin provides DMX input and output support for Peperoni DMX devices.");
     str += QString("</P>");
 
     return str;
@@ -98,10 +107,15 @@ QString Peperoni::outputInfo(quint32 output)
 {
     QString str;
 
-    if (output == QLCIOPlugin::invalidLine() && output < quint32(m_devices.size()))
+    if (m_devices.contains(output) == false)
+        return str;
+
+    if (m_devices[output] != NULL)
     {
-        str += m_devices.at(output)->infoText();
+        str += m_devices[output]->outputInfoText(output);
     }
+    else
+        qDebug() << "Peperoni invalid output!" << output << m_devices.size();
 
     str += QString("</BODY>");
     str += QString("</HTML>");
@@ -113,8 +127,78 @@ void Peperoni::writeUniverse(quint32 universe, quint32 output, const QByteArray 
 {
     Q_UNUSED(universe)
 
-    if (output < quint32(m_devices.size()))
-        m_devices.at(output)->outputDMX(data);
+    if (m_devices.contains(output) == false)
+        return;
+
+    if (m_devices[output] != NULL)
+        m_devices[output]->outputDMX(output, data);
+    else
+        qDebug() << "Peperoni invalid output!" << output << m_devices.size();
+}
+
+/*************************************************************************
+ * Inputs
+ *************************************************************************/
+
+bool Peperoni::openInput(quint32 input, quint32 universe)
+{
+    Q_UNUSED(universe)
+    if (m_devices.contains(input) == false)
+        return false;
+
+    if (m_devices[input] != NULL)
+    {
+        connect(m_devices[input], SIGNAL(valueChanged(quint32, quint32,quint32,uchar)),
+                this, SIGNAL(valueChanged(quint32, quint32,quint32,uchar)));
+        return m_devices[input]->open(input, PeperoniDevice::InputMode);
+    }
+    return false;
+}
+
+void Peperoni::closeInput(quint32 input, quint32 universe)
+{
+    Q_UNUSED(universe)
+    if (m_devices.contains(input) && m_devices[input] != NULL)
+    {
+        m_devices[input]->close(input, PeperoniDevice::InputMode);
+        disconnect(m_devices[input], SIGNAL(valueChanged(quint32,quint32,quint32,uchar)),
+                   this, SIGNAL(valueChanged(quint32,quint32,quint32,uchar)));
+    }
+}
+
+QStringList Peperoni::inputs()
+{
+    QStringList list;
+    int i = 1;
+
+    QList <PeperoniDevice*> devList = m_devices.values();
+    foreach(PeperoniDevice* dev, devList)
+    {
+        list << QString("%1: %2").arg(i).arg(dev->name(i - 1));
+        i++;
+    }
+    return list;
+}
+
+QString Peperoni::inputInfo(quint32 input)
+{
+    QString str;
+
+    if (m_devices.contains(input) == false)
+        return str;
+
+    if (m_devices[input] != NULL)
+    {
+        str += m_devices[input]->baseInfoText(input);
+        str += m_devices[input]->inputInfoText(input);
+    }
+    else
+        qDebug() << "Peperoni invalid input!" << input << m_devices.size();
+
+    str += QString("</BODY>");
+    str += QString("</HTML>");
+
+    return str;
 }
 
 /*****************************************************************************
@@ -146,55 +230,98 @@ void Peperoni::rescanDevices()
 
     /* Treat all devices as dead first, until we find them again. Those
        that aren't found, get destroyed at the end of this function. */
-    QList <PeperoniDevice*> destroyList(m_devices);
+    QHash <quint32, PeperoniDevice*> destroyList(m_devices);
+    quint32 line = 0;
+    int devCount = m_devices.count();
 
     usb_find_busses();
     usb_find_devices();
 
-    /* Iterate thru all buses */
+    /* Iterate through all buses */
     for (bus = usb_get_busses(); bus != NULL; bus = bus->next)
     {
         /* Iterate thru all devices in each bus */
         for (dev = bus->devices; dev != NULL; dev = dev->next)
         {
-            PeperoniDevice* pepdev = device(dev);
-            if (pepdev != NULL)
+            if(device(dev) == true)
             {
                 /* We already have this device and it's still
                    there. Remove from the destroy list and
                    continue iterating. */
-                destroyList.removeAll(pepdev);
+                destroyList.remove(line);
+                line++;
                 continue;
             }
             else if (PeperoniDevice::isPeperoniDevice(dev) == true)
             {
                 /* This is a new device. Create and append. */
-                pepdev = new PeperoniDevice(this, dev);
-                m_devices.append(pepdev);
+                PeperoniDevice* pepdev = new PeperoniDevice(this, dev, line);
+                m_devices[line] = pepdev;
+                if (PeperoniDevice::outputsNumber(dev) == 2)
+                {
+                    line++;
+                    /* reserve another line with the same device reference */
+                    m_devices[line] = pepdev;
+                }
+                line++;
             }
         }
     }
 
-    /* Destroy those devices that were no longer found. */
-    while (destroyList.isEmpty() == false)
+    qDebug() << "[Peperoni] Need to destroy" << destroyList.count() << "devices";
+    QHashIterator<quint32, PeperoniDevice*> it(destroyList);
+    while(it.hasNext())
     {
-        PeperoniDevice* pepdev = destroyList.takeFirst();
-        m_devices.removeAll(pepdev);
-        delete pepdev;
+        it.next();
+        PeperoniDevice *dev = m_devices.take(it.key());
+        dev->closeAll();
+        delete dev;
     }
+
+    qDebug() << "Peperoni devices found:" << m_devices.count();
+    if (m_devices.count() != devCount)
+        emit configurationChanged();
 }
 
-PeperoniDevice* Peperoni::device(struct usb_device* usbdev)
+bool Peperoni::device(struct usb_device* usbdev)
 {
-    QListIterator <PeperoniDevice*> it(m_devices);
-    while (it.hasNext() == true)
+    foreach(PeperoniDevice* dev, m_devices.values())
     {
-        PeperoniDevice* dev = it.next();
         if (dev->device() == usbdev)
-            return dev;
+            return true;
+    }
+    return false;
+}
+
+
+/*****************************************************************************
+ * Hotplug
+ *****************************************************************************/
+
+void Peperoni::slotDeviceAdded(uint vid, uint pid)
+{
+    qDebug() << Q_FUNC_INFO << QString::number(vid, 16) << QString::number(pid, 16);
+
+    if (!PeperoniDevice::isPeperoniDevice(vid, pid))
+    {
+        qDebug() << Q_FUNC_INFO << "not a Peperoni device";
+        return;
     }
 
-    return NULL;
+    rescanDevices();
+}
+
+void Peperoni::slotDeviceRemoved(uint vid, uint pid)
+{
+    qDebug() << Q_FUNC_INFO << QString::number(vid, 16) << QString::number(pid, 16);
+
+    if (!PeperoniDevice::isPeperoniDevice(vid, pid))
+    {
+        qDebug() << Q_FUNC_INFO << "not a Peperoni device";
+        return;
+    }
+
+    rescanDevices();
 }
 
 /*****************************************************************************

@@ -32,10 +32,18 @@
 
 typedef struct
 {
-    QString IPAddress;
-    QString MACAddress;
+    QNetworkInterface interface;
+    QNetworkAddressEntry address;
     E131Controller* controller;
 } E131IO;
+
+#define E131_MULTICAST "multicast"
+#define E131_MCASTIP "mcastIP"
+#define E131_UCASTIP "ucastIP"
+#define E131_UCASTPORT "ucastPort"
+#define E131_UNIVERSE "universe"
+#define E131_TRANSMITMODE "transmitMode"
+#define E131_PRIORITY "priority"
 
 class E131Plugin : public QLCIOPlugin
 {
@@ -64,15 +72,19 @@ public:
     /** @reimp */
     QString pluginInfo();
 
+
+private:
+    bool requestLine(quint32 line, int retries);
+
     /*********************************************************************
      * Outputs
      *********************************************************************/
 public:
     /** @reimp */
-    void openOutput(quint32 output);
+    bool openOutput(quint32 output, quint32 universe);
 
     /** @reimp */
-    void closeOutput(quint32 output);
+    void closeOutput(quint32 output, quint32 universe);
 
     /** @reimp */
     QStringList outputs();
@@ -88,23 +100,16 @@ public:
      *************************************************************************/
 public:
     /** @reimp */
-    void openInput(quint32 input);
+    bool openInput(quint32 input, quint32 universe);
 
     /** @reimp */
-    void closeInput(quint32 input);
+    void closeInput(quint32 input, quint32 universe);
 
     /** @reimp */
     QStringList inputs();
 
     /** @reimp */
     QString inputInfo(quint32 input);
-
-    /** @reimp */
-    void sendFeedBack(quint32 input, quint32 channel, uchar value, const QString& key)
-        { Q_UNUSED(input); Q_UNUSED(channel); Q_UNUSED(value); Q_UNUSED(key); }
-
-    /** send an event to the upper layers */
-    void sendValueChanged(quint32 input, QString path, uchar value);
 
     /*********************************************************************
      * Configuration
@@ -116,20 +121,15 @@ public:
     /** @reimp */
     bool canConfigure();
 
-    QList<QNetworkAddressEntry> interfaces();
+    /** @reimp */
+    void setParameter(quint32 universe, quint32 line, Capability type, QString name, QVariant value);
 
     /** Get a list of the available Input/Output lines */
     QList<E131IO> getIOMapping();
 
-    void remapOutputs(QList<QString> IPs, QList<int> ports);
-
 private:
-    /** List holding the detected system network interfaces */
-    QList<QNetworkAddressEntry> m_netInterfaces;
-
-
     /** Map of the E131 plugin Input/Output lines */
-    QList<E131IO>m_IOmapping;
+    QList<E131IO> m_IOmapping;
 };
 
 #endif

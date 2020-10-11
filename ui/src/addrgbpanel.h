@@ -22,6 +22,7 @@
 
 #include <QDialog>
 #include "ui_addrgbpanel.h"
+#include "fixture.h"
 
 class QLCFixtureDef;
 class QLCFixtureMode;
@@ -31,7 +32,7 @@ class AddRGBPanel : public QDialog, public Ui_AddRGBPanel
 {
     Q_OBJECT
     Q_DISABLE_COPY(AddRGBPanel)
-    
+
 public:
     AddRGBPanel(QWidget *parent, const Doc* doc);
     ~AddRGBPanel();
@@ -50,13 +51,23 @@ public:
         ZigZag
     };
 
+    enum Direction {
+    	Undefined,
+		Horizontal,
+		Vertical
+    };
+
     QString name();
     int universeIndex();
     int address();
     int columns();
     int rows();
+    quint32 physicalWidth();
+    quint32 physicalHeight();
     Orientation orientation();
     Type type();
+    Direction direction();
+    Fixture::Components components();
 
 private:
     /** Check if an address is available for contiguous channels.

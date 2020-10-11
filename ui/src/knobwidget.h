@@ -38,17 +38,23 @@ public:
 
     void setEnabled(bool);
 
+    void setColor(QColor color);
+
 protected:
     void prepareCursor();
+    void prepareBody();
 
     void resizeEvent(QResizeEvent *e);
     void paintEvent(QPaintEvent* e);
+    void wheelEvent(QWheelEvent *e);
 
 private:
     QPixmap rotatePix(QPixmap *p_pix, float p_deg);
 private:
     QPixmap* m_background;
     QPixmap* m_cursor;
+    QColor m_gradStartColor;
+    QColor m_gradEndColor;
 };
 
 /** @} */

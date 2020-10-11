@@ -20,7 +20,6 @@
 #ifndef SCENEEDITOR_H
 #define SCENEEDITOR_H
 
-#include <QPointer>
 #include <QWidget>
 #include <QList>
 #include <QMap>
@@ -40,6 +39,7 @@ class InputMap;
 class QAction;
 class Chaser;
 class Doc;
+class SceneUiState;
 
 /** @addtogroup ui_functions
  * @{
@@ -54,12 +54,18 @@ class SceneEditor : public QWidget, public Ui_SceneEditor
      * Initialization
      *********************************************************************/
 public:
+    /*!
+       \param applyValues - true for scenes, false for sequences
+     */
     SceneEditor(QWidget* parent, Scene* scene, Doc* doc, bool applyValues);
     ~SceneEditor();
 
 public slots:
     void slotFunctionManagerActive(bool active);
     void slotSetSceneValues(QList <SceneValue>&);
+
+protected slots:
+    void slotFixtureRemoved(quint32 id);
 
 private:
     Doc* m_doc;
@@ -69,6 +75,7 @@ private:
 private:
     void init(bool applyValues);
     void setSceneValue(const SceneValue& scv);
+    SceneUiState * sceneUiState();
 
 private:
     bool m_initFinished;
@@ -89,16 +96,19 @@ private slots:
     void slotPaste();
     void slotCopyToAll();
     void slotColorTool();
+    void slotPositionTool();
     QColor slotColorSelectorChanged(const QColor &color);
+    void slotPositionSelectorChanged(const QPointF &position);
     void slotSpeedDialToggle(bool state);
     void slotBlindToggled(bool state);
     void slotRecord();
     void slotChaserComboActivated(int index);
     void slotModeChanged(Doc::Mode mode);
-    void slotViewModeChanged(bool toggled, bool applyValues = true);
+    void slotViewModeChanged(bool tabbed, bool applyValues = true);
 
 private:
     bool isColorToolAvailable();
+    bool isPositionToolAvailable();
     void createSpeedDials();
     Chaser* selectedChaser() const;
 
@@ -109,6 +119,7 @@ private:
     QAction* m_pasteAction;
     QAction* m_copyToAllAction;
     QAction* m_colorToolAction;
+    QAction* m_positionToolAction;
     QAction* m_blindAction;
     QAction* m_recordAction;
     QAction* m_speedDialAction;
@@ -129,7 +140,7 @@ private:
     QList <Fixture*> selectedFixtures() const;
 
     bool addFixtureItem(Fixture* fixture);
-    void removeFixtureItem(Fixture* fixture);
+    void removeFixtureItem(quint32 fixtureID);
 
 private slots:
     void slotNameEdited(const QString& name);
@@ -144,7 +155,7 @@ private slots:
     void slotDialDestroyed(QObject* dial);
 
 private:
-    QPointer<SpeedDialWidget> m_speedDials;
+    SpeedDialWidget *m_speedDials;
 
     /*********************************************************************
      * Channels groups
@@ -176,12 +187,12 @@ private:
     FixtureConsole* fixtureConsole(Fixture* fixture);
 
     void addFixtureTab(Fixture* fixture, quint32 channel = QLCChannel::invalid());
-    void removeFixtureTab(Fixture* fixture);
+    void removeFixtureTab(quint32 fixtureID);
     FixtureConsole* fixtureConsoleTab(int tab);
     void setTabChannelState(bool status, Fixture* fixture, quint32 channel);
 
 signals:
-    void fixtureValueChanged(SceneValue val);
+    void fixtureValueChanged(SceneValue val, bool enabled);
 
 private slots:
     void slotValueChanged(quint32 fxi, quint32 channel, uchar value);
@@ -196,7 +207,7 @@ private:
     /** Index of the first fixture's tab */
     int m_fixtureFirstTabIndex;
 
-    QList <FixtureConsole *> m_consoleList;
+    QMap <quint32, FixtureConsole *> m_consoleList;
 
     /** Flag to indicate if some fixture channels were
      *  manually selected and copied to clipboard */

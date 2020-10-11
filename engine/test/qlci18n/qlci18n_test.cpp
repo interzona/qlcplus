@@ -38,7 +38,7 @@ void QLCi18n_Test::translationFilePath()
 
 void QLCi18n_Test::loadTranslation()
 {
-    // so that 
+    // so that
     QString dummy = tr("dummy");
 
     QLCi18n::setDefaultLocale(QString());
@@ -56,7 +56,7 @@ void QLCi18n_Test::loadTranslation()
 
     // qlci18n_fi_FI.qm SHOULD be there.
     QLCi18n::setDefaultLocale("fi_FI");
-    QVERIFY(QLCi18n::loadTranslation("qlci18n") == true);
+    QCOMPARE(QLCi18n::loadTranslation("qlci18n"), true);
 }
 
 QTEST_MAIN(QLCi18n_Test)

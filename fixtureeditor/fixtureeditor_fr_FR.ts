@@ -1,461 +1,444 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!DOCTYPE TS>
-<TS version="2.0" language="fr_FR">
+<TS version="2.1" language="fr_FR">
 <context>
     <name>AboutBox</name>
     <message>
-        <location filename="../ui/src/aboutbox.ui" line="14"/>
+        <location filename="../ui/src/aboutbox.ui" line="33"/>
         <source>About Q Light Controller Plus</source>
-        <translation>A propos de Q Light Controller</translation>
+        <translation>À propos de Q Light Controller Plus</translation>
     </message>
     <message>
-        <location filename="../ui/src/aboutbox.ui" line="69"/>
+        <location filename="../ui/src/aboutbox.ui" line="88"/>
         <source>Contributors</source>
-        <translation>Participants</translation>
+        <translation>Contributeurs</translation>
     </message>
     <message>
-        <location filename="../ui/src/aboutbox.ui" line="116"/>
+        <location filename="../ui/src/aboutbox.ui" line="135"/>
         <source>This application is licensed under the terms of the Apache 2.0 license.</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../ui/src/aboutbox.cpp" line="41"/>
-        <source>and contributors:</source>
-        <translation>et participants :</translation>
+        <translation>Cette application est sous licence Apache version 2.0.</translation>
     </message>
     <message>
         <location filename="../ui/src/aboutbox.cpp" line="42"/>
+        <source>and contributors:</source>
+        <translation>et contributeurs :</translation>
+    </message>
+    <message>
+        <location filename="../ui/src/aboutbox.cpp" line="43"/>
         <source>Website: %1</source>
-        <translation>Site Web : %1</translation>
+        <translation>Site internet : %1</translation>
     </message>
 </context>
 <context>
     <name>AddChannelsDialog</name>
     <message>
-        <location filename="addchannelsdialog.ui" line="14"/>
+        <location filename="addchannelsdialog.ui" line="33"/>
         <source>Fixture Mode Channels Editor</source>
-        <translation>Editeur de Modes</translation>
+        <translation>Éditeur de mode de l&apos;appareil</translation>
     </message>
     <message>
-        <location filename="addchannelsdialog.ui" line="30"/>
+        <location filename="addchannelsdialog.ui" line="114"/>
         <source>Available channels</source>
         <oldsource>All channels</oldsource>
         <translation>Canaux disponibles</translation>
     </message>
     <message>
-        <location filename="addchannelsdialog.ui" line="94"/>
-        <location filename="addchannelsdialog.ui" line="116"/>
+        <location filename="addchannelsdialog.ui" line="106"/>
+        <location filename="addchannelsdialog.ui" line="135"/>
         <source>Name</source>
         <translation>Nom</translation>
     </message>
     <message>
-        <location filename="addchannelsdialog.ui" line="102"/>
+        <location filename="addchannelsdialog.ui" line="121"/>
         <source>Mode channels</source>
-        <translation>Canaux du Mode</translation>
+        <translation>Canaux du mode</translation>
     </message>
 </context>
 <context>
     <name>App</name>
     <message>
-        <location filename="app.cpp" line="121"/>
+        <location filename="app.cpp" line="123"/>
         <source>Unrecognized file extension: %1</source>
         <translation>Extension de fichier inconnue : %1</translation>
     </message>
     <message>
-        <location filename="app.cpp" line="145"/>
+        <location filename="app.cpp" line="147"/>
         <source>Fixture loading failed</source>
-        <translation>Echec de chargement du projecteur</translation>
+        <translation>Échec du chargement de l&apos;appareil</translation>
     </message>
     <message>
-        <location filename="app.cpp" line="146"/>
+        <location filename="app.cpp" line="148"/>
         <source>Unable to load fixture definition: </source>
-        <translation>Impossible de charger les spécifications du projecteur :</translation>
+        <translation>Impossible de charger la définition de l&apos;appareil : </translation>
     </message>
     <message>
-        <location filename="app.cpp" line="249"/>
+        <location filename="app.cpp" line="242"/>
         <source>&amp;New</source>
         <translation>&amp;Nouveau</translation>
     </message>
     <message>
-        <location filename="app.cpp" line="250"/>
+        <location filename="app.cpp" line="243"/>
         <source>CTRL+N</source>
         <comment>File|New</comment>
         <translation></translation>
     </message>
     <message>
-        <location filename="app.cpp" line="255"/>
+        <location filename="app.cpp" line="248"/>
         <source>&amp;Open</source>
         <translation>&amp;Ouvrir</translation>
     </message>
     <message>
-        <location filename="app.cpp" line="256"/>
+        <location filename="app.cpp" line="249"/>
         <source>CTRL+O</source>
         <comment>File|Open</comment>
         <translation></translation>
     </message>
     <message>
-        <location filename="app.cpp" line="261"/>
+        <location filename="app.cpp" line="254"/>
         <source>&amp;Save</source>
-        <translation>&amp;Sauvegarder</translation>
+        <translation>Enregistrer (&amp;S)</translation>
     </message>
     <message>
-        <location filename="app.cpp" line="262"/>
+        <location filename="app.cpp" line="255"/>
         <source>CTRL+S</source>
         <comment>File|Save</comment>
         <translation></translation>
     </message>
     <message>
-        <location filename="app.cpp" line="267"/>
+        <location filename="app.cpp" line="260"/>
         <source>Save &amp;As...</source>
-        <translation>Enregistrer sous (&amp;A)...</translation>
+        <translation>Enregistrer sous... (&amp;A)</translation>
     </message>
     <message>
-        <location filename="app.cpp" line="268"/>
+        <location filename="app.cpp" line="261"/>
         <source>CTRL+SHIFT+S</source>
         <comment>File|Save As...</comment>
         <translation></translation>
     </message>
     <message>
-        <location filename="app.cpp" line="273"/>
+        <location filename="app.cpp" line="266"/>
         <source>&amp;Quit</source>
         <translation>&amp;Quitter</translation>
     </message>
     <message>
-        <location filename="app.cpp" line="274"/>
+        <location filename="app.cpp" line="267"/>
         <source>CTRL+Q</source>
         <comment>File|Quit</comment>
         <translation></translation>
     </message>
     <message>
-        <location filename="app.cpp" line="280"/>
+        <location filename="app.cpp" line="273"/>
         <source>Index</source>
-        <translation>Index</translation>
+        <translation>Aide</translation>
     </message>
     <message>
-        <location filename="app.cpp" line="281"/>
+        <location filename="app.cpp" line="274"/>
         <source>SHIFT+F1</source>
         <comment>Help|Index</comment>
         <translation></translation>
     </message>
     <message>
-        <location filename="app.cpp" line="286"/>
+        <location filename="app.cpp" line="279"/>
         <source>About Fixture Definition Editor...</source>
-        <translation>A propos de Fixture Definition Editor...</translation>
+        <translation>À propos de Fixture Definition Editor...</translation>
     </message>
     <message>
-        <location filename="app.cpp" line="291"/>
+        <location filename="app.cpp" line="284"/>
         <source>About Qt...</source>
-        <translation>A propos de QT...</translation>
+        <translation>À propos de Qt...</translation>
     </message>
     <message>
-        <location filename="app.cpp" line="318"/>
+        <location filename="app.cpp" line="311"/>
         <source>&amp;File</source>
         <translation>&amp;Fichier</translation>
     </message>
     <message>
-        <location filename="app.cpp" line="328"/>
+        <location filename="app.cpp" line="321"/>
         <source>&amp;Help</source>
         <translation>Aide (&amp;H)</translation>
     </message>
     <message>
-        <location filename="app.cpp" line="366"/>
+        <location filename="app.cpp" line="359"/>
         <source>Open a fixture definition</source>
-        <translation>Ouvrir les spécifications d&apos;un projecteur</translation>
+        <translation>Ouvrir la définition d&apos;un appareil</translation>
     </message>
 </context>
 <context>
     <name>CapabilityWizard</name>
     <message>
-        <location filename="capabilitywizard.ui" line="13"/>
+        <location filename="capabilitywizard.ui" line="33"/>
         <source>Capability Wizard</source>
-        <translation>Assistant de plages DMX</translation>
+        <translation>Assistant de fonctionnalités</translation>
     </message>
     <message>
-        <location filename="capabilitywizard.ui" line="19"/>
+        <location filename="capabilitywizard.ui" line="39"/>
         <source>Values</source>
         <translation>Valeurs</translation>
     </message>
     <message>
-        <location filename="capabilitywizard.ui" line="25"/>
+        <location filename="capabilitywizard.ui" line="45"/>
         <source>Start</source>
         <translation>Début</translation>
     </message>
     <message>
-        <location filename="capabilitywizard.ui" line="32"/>
+        <location filename="capabilitywizard.ui" line="52"/>
         <source>The starting DMX value</source>
-        <translation>Valeur DMX de départ</translation>
+        <translation>La valeur DMX de départ</translation>
     </message>
     <message>
-        <location filename="capabilitywizard.ui" line="42"/>
-        <source>Gap</source>
-        <translation>Taille</translation>
+        <location filename="capabilitywizard.ui" line="62"/>
+        <source>Width</source>
+        <translation>Plage</translation>
     </message>
     <message>
-        <location filename="capabilitywizard.ui" line="49"/>
+        <location filename="capabilitywizard.ui" line="69"/>
         <source>Number of values per capability</source>
-        <translation>Taille de chaque plage DMX</translation>
+        <translation>Le nombre de valeurs par fonctionnalité</translation>
     </message>
     <message>
-        <location filename="capabilitywizard.ui" line="65"/>
+        <location filename="capabilitywizard.ui" line="85"/>
         <source>Amount</source>
         <translation>Quantité</translation>
     </message>
     <message>
-        <location filename="capabilitywizard.ui" line="72"/>
+        <location filename="capabilitywizard.ui" line="92"/>
         <source>Number of capabilities to create</source>
-        <translation>Nombre de plages DMX à créer</translation>
+        <translation>Le nombre de fonctionnalités à générer</translation>
     </message>
     <message>
-        <location filename="capabilitywizard.ui" line="88"/>
+        <location filename="capabilitywizard.ui" line="108"/>
         <source>Name</source>
         <translation>Nom</translation>
     </message>
     <message>
-        <location filename="capabilitywizard.ui" line="94"/>
+        <location filename="capabilitywizard.ui" line="114"/>
         <source>The common base name for all capabilities. Use hash &apos;#&apos; to create a running number.</source>
-        <translation>Le nom générique de chaque valeur. Placer un # pour créer un nombre incrémental.</translation>
+        <translation>La base commune du nom pour toutes les fonctionnalités (utilisez &apos;#&apos; pour générer un nombre incrémental).</translation>
     </message>
     <message>
-        <location filename="capabilitywizard.ui" line="97"/>
+        <location filename="capabilitywizard.ui" line="117"/>
         <source>Capability #</source>
-        <translation>Plage #</translation>
+        <translation>Fonctionnalité #</translation>
     </message>
     <message>
-        <location filename="capabilitywizard.ui" line="107"/>
+        <location filename="capabilitywizard.ui" line="127"/>
         <source>Sample</source>
         <translation>Liste</translation>
     </message>
     <message>
-        <location filename="capabilitywizard.ui" line="113"/>
+        <location filename="capabilitywizard.ui" line="133"/>
         <source>A list of capabilities that would be created with these settings</source>
-        <translation>Liste des plages DMX qui vont être créées</translation>
+        <translation>La liste des fonctionnalités qui vont être générées selon les paramètres fournis</translation>
     </message>
 </context>
 <context>
     <name>DocBrowser</name>
     <message>
-        <location filename="../ui/src/docbrowser.cpp" line="103"/>
+        <location filename="../ui/src/docbrowser.cpp" line="105"/>
         <source>%1 - Document Browser</source>
         <translation>%1 - Explorateur de documents</translation>
     </message>
     <message>
-        <location filename="../ui/src/docbrowser.cpp" line="114"/>
+        <location filename="../ui/src/docbrowser.cpp" line="127"/>
         <source>Backward</source>
         <translation>Avant</translation>
     </message>
     <message>
-        <location filename="../ui/src/docbrowser.cpp" line="115"/>
+        <location filename="../ui/src/docbrowser.cpp" line="128"/>
         <source>Forward</source>
         <translation>Arrière</translation>
     </message>
     <message>
-        <location filename="../ui/src/docbrowser.cpp" line="116"/>
+        <location filename="../ui/src/docbrowser.cpp" line="129"/>
         <source>Index</source>
-        <translation>Index</translation>
+        <translation>Aide</translation>
     </message>
     <message>
-        <location filename="../ui/src/docbrowser.cpp" line="117"/>
+        <location filename="../ui/src/docbrowser.cpp" line="130"/>
         <source>About Qt</source>
-        <translation>À Propos de QT</translation>
-    </message>
-</context>
-<context>
-    <name>EditCapability</name>
-    <message>
-        <location filename="editcapability.ui" line="14"/>
-        <source>Edit Capability</source>
-        <translation>Editeur de Plages DMX</translation>
+        <translation>À propos de Qt</translation>
     </message>
     <message>
-        <location filename="editcapability.ui" line="22"/>
-        <source>Capability Values</source>
-        <translation>Valeurs</translation>
-    </message>
-    <message>
-        <location filename="editcapability.ui" line="34"/>
-        <source>Min</source>
-        <translation>Min</translation>
-    </message>
-    <message>
-        <location filename="editcapability.ui" line="106"/>
-        <location filename="editcapability.cpp" line="44"/>
-        <source>Gobo</source>
-        <translation>Gobo</translation>
-    </message>
-    <message>
-        <location filename="editcapability.ui" line="73"/>
-        <source>Max</source>
-        <translation>Max</translation>
-    </message>
-    <message>
-        <location filename="editcapability.ui" line="96"/>
-        <source>Description</source>
-        <translation>Description</translation>
-    </message>
-    <message>
-        <location filename="editcapability.ui" line="143"/>
-        <location filename="editcapability.ui" line="154"/>
-        <location filename="editcapability.ui" line="165"/>
-        <source>...</source>
-        <translation>...</translation>
-    </message>
-    <message>
-        <location filename="editcapability.ui" line="172"/>
-        <source>Picture</source>
-        <translation>Image</translation>
-    </message>
-    <message>
-        <location filename="editcapability.ui" line="179"/>
-        <location filename="editcapability.cpp" line="46"/>
-        <source>Colour</source>
-        <translation>Couleur</translation>
-    </message>
-    <message>
-        <location filename="editcapability.ui" line="186"/>
-        <source>Second Colour</source>
-        <translation>Deuxième Couleur</translation>
-    </message>
-    <message>
-        <location filename="editcapability.cpp" line="48"/>
-        <source>Effect</source>
-        <translation>Effet</translation>
-    </message>
-    <message>
-        <location filename="editcapability.cpp" line="138"/>
-        <source>Open Gobo File</source>
-        <translation>Ovrir un Gobo</translation>
-    </message>
-    <message>
-        <location filename="editcapability.cpp" line="141"/>
-        <source>Gobo pictures</source>
-        <translation>Images de gobos</translation>
+        <location filename="../ui/src/docbrowser.cpp" line="131"/>
+        <source>Close this window</source>
+        <translation>Fermer cette fenêtre</translation>
     </message>
 </context>
 <context>
     <name>EditChannel</name>
     <message>
-        <location filename="editchannel.ui" line="14"/>
+        <location filename="editchannel.ui" line="33"/>
         <source>Edit Channel</source>
-        <translation>Editeur de Canaux DMX</translation>
+        <translation>Éditeur de canal</translation>
     </message>
     <message>
-        <location filename="editchannel.ui" line="20"/>
+        <location filename="editchannel.ui" line="114"/>
+        <source>&lt;font color=&quot;red&quot;&gt;&lt;b&gt;Capability overlapping detected. Please fix.&lt;/b&gt;&lt;/font&gt;</source>
+        <translation>&lt;font color=&quot;red&quot;&gt;&lt;b&gt;Chevauchement de fonctionnalités détecté. Veuillez y remedier.&lt;/b&gt;&lt;/font&gt;</translation>
+    </message>
+    <message>
+        <location filename="editchannel.ui" line="198"/>
         <source>Name</source>
         <translation>Nom</translation>
     </message>
     <message>
-        <location filename="editchannel.ui" line="27"/>
+        <location filename="editchannel.ui" line="240"/>
+        <source>Default value</source>
+        <translation>Valeur par défaut</translation>
+    </message>
+    <message>
+        <location filename="editchannel.ui" line="253"/>
+        <source>Type</source>
+        <translation>Type</translation>
+    </message>
+    <message>
+        <location filename="editchannel.ui" line="260"/>
+        <location filename="editchannel.ui" line="303"/>
+        <source>Preset</source>
+        <translation>Pré-réglage</translation>
+    </message>
+    <message>
+        <location filename="editchannel.ui" line="267"/>
         <source>The name of this channel</source>
-        <translation>Nom du Canal DMX</translation>
+        <translation>Le nom du canal en cours d&apos;édition</translation>
     </message>
     <message>
-        <location filename="editchannel.ui" line="34"/>
-        <source>Group</source>
-        <translation>Groupe</translation>
+        <location filename="editchannel.ui" line="274"/>
+        <source>Role</source>
+        <translation>Rôle</translation>
     </message>
     <message>
-        <location filename="editchannel.ui" line="41"/>
+        <location filename="editchannel.ui" line="336"/>
+        <source>Color 1</source>
+        <translation>Couleur 1</translation>
+    </message>
+    <message>
+        <location filename="editchannel.ui" line="360"/>
+        <source>Color 2</source>
+        <translation>Couleur 2</translation>
+    </message>
+    <message>
+        <location filename="editchannel.ui" line="387"/>
+        <source>Value 1</source>
+        <translation>Valeur 1</translation>
+    </message>
+    <message>
+        <location filename="editchannel.ui" line="401"/>
+        <source>Value 2</source>
+        <translation>Valeur 2</translation>
+    </message>
+    <message>
+        <location filename="editchannel.ui" line="430"/>
+        <source>Preview</source>
+        <translation>Aperçu</translation>
+    </message>
+    <message>
+        <location filename="editchannel.ui" line="227"/>
         <source>The group this channel belongs to</source>
-        <translation>Groupe auquel appartient ce canal DMX</translation>
+        <translation>Le groupe auquel ce canal appartient</translation>
     </message>
     <message>
-        <location filename="editchannel.ui" line="48"/>
-        <source>Colour</source>
-        <translation>Couleur</translation>
+        <location filename="editchannel.ui" line="322"/>
+        <source>Picture</source>
+        <translation>Image</translation>
     </message>
     <message>
-        <location filename="editchannel.ui" line="55"/>
-        <source>Primary colour level controlled by this channel</source>
-        <translation>Couleur Primaire gérée par ce Canal d&apos;Intensité</translation>
-    </message>
-    <message>
-        <location filename="editchannel.ui" line="62"/>
-        <source>Control Byte</source>
-        <translation>Octet de Contrôle</translation>
-    </message>
-    <message>
-        <location filename="editchannel.ui" line="68"/>
+        <location filename="editchannel.ui" line="283"/>
         <source>Coarse (MSB)</source>
         <translation>Grossier (MSB)</translation>
     </message>
     <message>
-        <location filename="editchannel.ui" line="75"/>
+        <location filename="editchannel.ui" line="290"/>
         <source>Fine (LSB)</source>
         <translation>Fin (LSB)</translation>
     </message>
     <message>
-        <location filename="editchannel.ui" line="85"/>
+        <location filename="editchannel.ui" line="55"/>
         <source>Capabilities</source>
-        <translation>Plages DMX</translation>
+        <translation>Fonctionnalités</translation>
     </message>
     <message>
-        <location filename="editchannel.ui" line="104"/>
+        <location filename="editchannel.ui" line="90"/>
+        <location filename="editchannel.cpp" line="572"/>
         <source>Minimum value</source>
-        <translation>Valeur Minimum</translation>
+        <translation>Valeur minimum</translation>
     </message>
     <message>
-        <location filename="editchannel.ui" line="109"/>
+        <location filename="editchannel.ui" line="95"/>
+        <location filename="editchannel.cpp" line="572"/>
         <source>Maximum value</source>
-        <translation>Valeur Maximum</translation>
+        <translation>Valeur maximum</translation>
     </message>
     <message>
-        <location filename="editchannel.ui" line="114"/>
+        <location filename="editchannel.ui" line="100"/>
+        <location filename="editchannel.cpp" line="572"/>
         <source>Description</source>
         <translation>Description</translation>
     </message>
     <message>
-        <location filename="editchannel.ui" line="122"/>
-        <source>Add a new capability</source>
-        <translation>Ajouter une nouvelle plage</translation>
-    </message>
-    <message>
-        <location filename="editchannel.ui" line="142"/>
+        <location filename="editchannel.ui" line="154"/>
         <source>Remove the selected capability</source>
-        <translation>Supprimer cette plage</translation>
+        <translation>Supprimer la fonctionnalité sélectionnée</translation>
     </message>
     <message>
-        <location filename="editchannel.ui" line="162"/>
-        <source>Edit the selected capability</source>
-        <translation>Editer cette plage</translation>
-    </message>
-    <message>
-        <location filename="editchannel.ui" line="195"/>
+        <location filename="editchannel.ui" line="121"/>
         <source>Capability wizard</source>
-        <translation>Assistant de Plages DMX</translation>
+        <translation>Assistant de fonctionnalité</translation>
     </message>
     <message>
-        <location filename="editchannel.cpp" line="256"/>
-        <location filename="editchannel.cpp" line="322"/>
-        <location filename="editchannel.cpp" line="366"/>
+        <location filename="editchannel.cpp" line="93"/>
+        <source>Edit Channel: </source>
+        <translation>Éditeur de canal : </translation>
+    </message>
+    <message>
+        <location filename="editchannel.cpp" line="481"/>
         <source>Overlapping values</source>
         <translation>Chevauchement de valeurs</translation>
     </message>
     <message>
-        <location filename="editchannel.cpp" line="257"/>
-        <location filename="editchannel.cpp" line="323"/>
-        <source>The capability&apos;s values overlap with another capability!</source>
-        <translation>Les valeurs de la plagent DMX en chevauchent une autre !</translation>
+        <location filename="editchannel.cpp" line="498"/>
+        <source>Open Gobo File</source>
+        <translation>Ouvrir un fichier de gobo</translation>
     </message>
     <message>
-        <location filename="editchannel.cpp" line="367"/>
+        <location filename="editchannel.cpp" line="501"/>
+        <source>Gobo pictures</source>
+        <translation>Images de gobo</translation>
+    </message>
+    <message>
+        <location filename="editchannel.cpp" line="615"/>
+        <source>Missing resources</source>
+        <translation>Ressources manquantes</translation>
+    </message>
+    <message>
+        <location filename="editchannel.cpp" line="616"/>
+        <source>Some gobos are missing:
+
+</source>
+        <translation>Des gobos manquent:
+
+</translation>
+    </message>
+    <message>
+        <location filename="editchannel.cpp" line="482"/>
         <source>Some capabilities could not be created because of overlapping values.</source>
-        <translation>En raison d&apos;un chevauchement de valeurs, certaines plages DMX n&apos;ont pu être créées.</translation>
+        <translation>Certaines fonctionnalités n&apos;ont pas pu être générées à cause d&apos;un chevauchement de valeurs.</translation>
     </message>
 </context>
 <context>
     <name>EditHead</name>
     <message>
-        <location filename="edithead.ui" line="14"/>
+        <location filename="edithead.ui" line="33"/>
         <source>Edit Head</source>
-        <translation>Editer la Source</translation>
+        <translation>Éditeur de tête</translation>
     </message>
     <message>
-        <location filename="edithead.ui" line="33"/>
+        <location filename="edithead.ui" line="52"/>
         <source>Channel</source>
         <translation>Canal</translation>
     </message>
     <message>
-        <location filename="edithead.ui" line="38"/>
+        <location filename="edithead.ui" line="57"/>
         <source>Name</source>
         <translation>Nom</translation>
     </message>
@@ -463,646 +446,617 @@
 <context>
     <name>EditMode</name>
     <message>
-        <location filename="editmode.ui" line="14"/>
+        <location filename="editmode.ui" line="33"/>
         <source>Edit Mode</source>
-        <translation>Editeur de Modes</translation>
+        <translation>Éditeur de mode</translation>
     </message>
     <message>
-        <location filename="editmode.ui" line="20"/>
+        <location filename="editmode.ui" line="39"/>
         <source>Mode Name</source>
-        <translation>Nom</translation>
+        <translation>Nom du mode</translation>
     </message>
     <message>
-        <location filename="editmode.ui" line="34"/>
+        <location filename="editmode.ui" line="53"/>
         <source>Channels</source>
         <translation>Canaux</translation>
     </message>
     <message>
-        <location filename="editmode.ui" line="59"/>
+        <location filename="editmode.ui" line="78"/>
         <source>Number</source>
-        <translation>Numero</translation>
+        <translation>Numéro</translation>
     </message>
     <message>
-        <location filename="editmode.ui" line="64"/>
-        <location filename="editmode.ui" line="747"/>
+        <location filename="editmode.ui" line="83"/>
         <source>Name</source>
         <translation>Nom</translation>
     </message>
     <message>
-        <location filename="editmode.ui" line="72"/>
+        <location filename="editmode.ui" line="91"/>
         <source>Add channel(s) to this mode</source>
-        <translation>Ajouter des canaux à ce mode</translation>
+        <translation>Ajouter un ou plusieurs canaux à ce mode</translation>
     </message>
     <message>
-        <location filename="editmode.ui" line="92"/>
+        <location filename="editmode.ui" line="111"/>
         <source>Remove the selected channel</source>
-        <translation>Supprimer ce canal</translation>
+        <translation>Supprimer le canal sélectionné</translation>
     </message>
     <message>
-        <location filename="editmode.ui" line="112"/>
+        <location filename="editmode.ui" line="131"/>
         <source>Raise the selected channel</source>
-        <translation>Remonter ce canal</translation>
+        <translation>Monter le canal sélectionné</translation>
     </message>
     <message>
-        <location filename="editmode.ui" line="132"/>
+        <location filename="editmode.ui" line="151"/>
         <source>Lower the selected channel</source>
-        <translation>Redescendre ce canal</translation>
+        <translation>Descendre le canal sélectionné</translation>
     </message>
     <message>
-        <location filename="editmode.ui" line="166"/>
+        <location filename="editmode.ui" line="185"/>
         <source>Heads</source>
-        <translation>Sources</translation>
+        <translation>Têtes</translation>
     </message>
     <message>
-        <location filename="editmode.ui" line="179"/>
+        <location filename="editmode.ui" line="198"/>
         <source>Head</source>
-        <translation>Source</translation>
+        <translation>Tête</translation>
     </message>
     <message>
-        <location filename="editmode.ui" line="187"/>
+        <location filename="editmode.ui" line="206"/>
         <source>Compose a new head</source>
-        <translation>Définir une nouvelle Source</translation>
+        <translation>Définir une nouvelle tête</translation>
     </message>
     <message>
-        <location filename="editmode.ui" line="207"/>
+        <location filename="editmode.ui" line="226"/>
         <source>Remove the selected head</source>
-        <translation>Supprimer la Source</translation>
+        <translation>Supprimer la tête sélectionnée</translation>
     </message>
     <message>
-        <location filename="editmode.ui" line="227"/>
+        <location filename="editmode.ui" line="246"/>
         <source>Edit the channels that belong to the selected head</source>
-        <translation>Éditer les canaux qui appartiennent à la Source sélectionnée</translation>
+        <translation>Éditer les canaux qui appartiennent à la tête sélectionnée</translation>
     </message>
     <message>
-        <location filename="editmode.ui" line="230"/>
-        <source>...</source>
-        <translation>...</translation>
-    </message>
-    <message>
-        <location filename="editmode.ui" line="247"/>
+        <location filename="editmode.ui" line="266"/>
         <source>Raise the selected head</source>
-        <translation>Remonter la source sélectionnée</translation>
+        <translation>Monter la tête sélectionnée</translation>
     </message>
     <message>
-        <location filename="editmode.ui" line="267"/>
+        <location filename="editmode.ui" line="286"/>
         <source>Lower the selected head</source>
-        <translation>Redescendre ka source sélectionnée</translation>
+        <translation>Descendre la tête sélectionnée</translation>
     </message>
     <message>
-        <location filename="editmode.ui" line="301"/>
+        <location filename="editmode.ui" line="320"/>
         <source>Physical</source>
-        <translation>Données Physiques</translation>
+        <translation>Données physiques</translation>
     </message>
     <message>
-        <location filename="editmode.ui" line="307"/>
+        <location filename="editmode.ui" line="330"/>
+        <source>Use global settings</source>
+        <translation>Utiliser les paramètres globaux</translation>
+    </message>
+    <message>
+        <location filename="editmode.ui" line="340"/>
+        <source>Override global settings</source>
+        <translation>Ne pas utiliser les paramètres globaux</translation>
+    </message>
+</context>
+<context>
+    <name>EditPhysical</name>
+    <message>
+        <location filename="editphysical.ui" line="277"/>
         <source>Bulb</source>
         <translation>Lampe</translation>
     </message>
     <message>
-        <location filename="editmode.ui" line="313"/>
-        <location filename="editmode.ui" line="825"/>
+        <location filename="editphysical.ui" line="45"/>
+        <location filename="editphysical.ui" line="283"/>
         <source>Type</source>
-        <translation></translation>
+        <translation>Type</translation>
     </message>
     <message>
-        <location filename="editmode.ui" line="402"/>
-        <source>HMI 150W</source>
-        <translation>HMI 150W</translation>
-    </message>
-    <message>
-        <location filename="editmode.ui" line="407"/>
-        <source>HMI 250W</source>
-        <translation>HMI 250W</translation>
-    </message>
-    <message>
-        <location filename="editmode.ui" line="412"/>
-        <source>HMI 400W</source>
-        <translation>HMI 400W</translation>
-    </message>
-    <message>
-        <location filename="editmode.ui" line="417"/>
-        <source>HMI 575W</source>
-        <translation>HMI 575W</translation>
-    </message>
-    <message>
-        <location filename="editmode.ui" line="422"/>
-        <source>HMI 700W</source>
-        <translation>HMI 700W</translation>
-    </message>
-    <message>
-        <location filename="editmode.ui" line="437"/>
-        <source>HSD 150W</source>
-        <translation></translation>
-    </message>
-    <message>
-        <location filename="editmode.ui" line="442"/>
-        <source>HSD 200W</source>
-        <translation></translation>
-    </message>
-    <message>
-        <location filename="editmode.ui" line="447"/>
-        <source>HSD 250W</source>
-        <translation></translation>
-    </message>
-    <message>
-        <location filename="editmode.ui" line="452"/>
-        <source>HSD 575W</source>
-        <translation></translation>
-    </message>
-    <message>
-        <location filename="editmode.ui" line="522"/>
-        <source>MSR 575W</source>
-        <translation></translation>
-    </message>
-    <message>
-        <location filename="editmode.ui" line="540"/>
+        <location filename="editphysical.ui" line="515"/>
         <source>Lumens</source>
-        <translation></translation>
+        <translation>Lumens</translation>
     </message>
     <message>
-        <location filename="editmode.ui" line="560"/>
+        <location filename="editphysical.ui" line="535"/>
         <source>Colour Temp (K)</source>
-        <translation>Température de Blanc (°K)</translation>
+        <translation>Température de couleur (en K)</translation>
     </message>
     <message>
-        <location filename="editmode.ui" line="574"/>
-        <source>2000</source>
-        <translation></translation>
-    </message>
-    <message>
-        <location filename="editmode.ui" line="579"/>
-        <source>2800</source>
-        <translation></translation>
-    </message>
-    <message>
-        <location filename="editmode.ui" line="584"/>
-        <source>3200</source>
-        <translation></translation>
-    </message>
-    <message>
-        <location filename="editmode.ui" line="589"/>
-        <source>4000</source>
-        <translation></translation>
-    </message>
-    <message>
-        <location filename="editmode.ui" line="594"/>
-        <source>4500</source>
-        <translation></translation>
-    </message>
-    <message>
-        <location filename="editmode.ui" line="599"/>
-        <source>5000</source>
-        <translation></translation>
-    </message>
-    <message>
-        <location filename="editmode.ui" line="604"/>
-        <source>5500</source>
-        <translation></translation>
-    </message>
-    <message>
-        <location filename="editmode.ui" line="609"/>
-        <source>6000</source>
-        <translation></translation>
-    </message>
-    <message>
-        <location filename="editmode.ui" line="614"/>
-        <source>6500</source>
-        <translation></translation>
-    </message>
-    <message>
-        <location filename="editmode.ui" line="619"/>
-        <source>7000</source>
-        <translation></translation>
-    </message>
-    <message>
-        <location filename="editmode.ui" line="624"/>
-        <source>7200</source>
-        <translation></translation>
-    </message>
-    <message>
-        <location filename="editmode.ui" line="629"/>
-        <source>8000</source>
-        <translation></translation>
-    </message>
-    <message>
-        <location filename="editmode.ui" line="634"/>
-        <source>8300</source>
-        <translation></translation>
-    </message>
-    <message>
-        <location filename="editmode.ui" line="639"/>
-        <source>9000</source>
-        <translation></translation>
-    </message>
-    <message>
-        <location filename="editmode.ui" line="644"/>
-        <source>9300</source>
-        <translation></translation>
-    </message>
-    <message>
-        <location filename="editmode.ui" line="655"/>
+        <location filename="editphysical.ui" line="708"/>
         <source>Dimensions</source>
-        <translation></translation>
+        <translation>Dimensions</translation>
     </message>
     <message>
-        <location filename="editmode.ui" line="661"/>
+        <location filename="editphysical.ui" line="784"/>
         <source>Weight</source>
         <translation>Poids</translation>
     </message>
     <message>
-        <location filename="editmode.ui" line="668"/>
+        <location filename="editphysical.ui" line="714"/>
         <source>kg</source>
-        <translation> kg</translation>
+        <translation>&#xa0;kg</translation>
     </message>
     <message>
-        <location filename="editmode.ui" line="678"/>
+        <location filename="editphysical.ui" line="724"/>
         <source>Width</source>
-        <translation>Largeur</translation>
+        <translation>Plage</translation>
     </message>
     <message>
-        <location filename="editmode.ui" line="688"/>
-        <location filename="editmode.ui" line="708"/>
-        <location filename="editmode.ui" line="728"/>
+        <location filename="editphysical.ui" line="734"/>
+        <location filename="editphysical.ui" line="754"/>
+        <location filename="editphysical.ui" line="774"/>
         <source>mm</source>
         <translation> mm</translation>
     </message>
     <message>
-        <location filename="editmode.ui" line="698"/>
+        <location filename="editphysical.ui" line="744"/>
         <source>Height</source>
         <translation>Hauteur</translation>
     </message>
     <message>
-        <location filename="editmode.ui" line="718"/>
+        <location filename="editphysical.ui" line="764"/>
         <source>Depth</source>
         <translation>Profondeur</translation>
     </message>
     <message>
-        <location filename="editmode.ui" line="741"/>
+        <location filename="editphysical.ui" line="39"/>
+        <source>Head(s)</source>
+        <translation>Tête(s)</translation>
+    </message>
+    <message>
+        <location filename="editphysical.ui" line="630"/>
         <source>Lens</source>
         <translation>Lentille</translation>
     </message>
     <message>
-        <location filename="editmode.ui" line="776"/>
+        <location filename="editphysical.ui" line="636"/>
+        <source>Name</source>
+        <translation>Nom</translation>
+    </message>
+    <message>
+        <location filename="editphysical.ui" line="665"/>
         <source>Min Degrees</source>
-        <translation>Angle Min</translation>
+        <translation>Angle min</translation>
     </message>
     <message>
-        <location filename="editmode.ui" line="783"/>
+        <location filename="editphysical.ui" line="672"/>
         <source>Max Degrees</source>
-        <translation>Angle Max</translation>
+        <translation>Angle max</translation>
     </message>
     <message>
-        <location filename="editmode.ui" line="819"/>
-        <source>Focus</source>
-        <translation>Mouvement</translation>
-    </message>
-    <message>
-        <location filename="editmode.ui" line="859"/>
+        <location filename="editphysical.ui" line="79"/>
         <source>Pan Max Degrees</source>
-        <translation>Pan Max (Degrés)</translation>
+        <translation>Pan max (en °)</translation>
     </message>
     <message>
-        <location filename="editmode.ui" line="876"/>
+        <location filename="editphysical.ui" line="96"/>
         <source>Tilt Max Degrees</source>
-        <translation>Tilt Max (Degrés)</translation>
+        <translation>Tilt max (en °)</translation>
     </message>
     <message>
-        <location filename="editmode.ui" line="896"/>
+        <location filename="editphysical.ui" line="113"/>
+        <source>Layout
+(Columns x Rows)</source>
+        <translation>Disposition
+(Colonnes × Lignes)</translation>
+    </message>
+    <message>
+        <location filename="editphysical.ui" line="158"/>
         <source>Electrical</source>
         <translation>Électrique</translation>
     </message>
     <message>
-        <location filename="editmode.ui" line="902"/>
+        <location filename="editphysical.ui" line="164"/>
         <source>Power Consumption</source>
         <translation>Consommation</translation>
     </message>
     <message>
-        <location filename="editmode.ui" line="912"/>
+        <location filename="editphysical.ui" line="174"/>
         <source>W</source>
         <translation> W</translation>
     </message>
     <message>
-        <location filename="editmode.ui" line="922"/>
+        <location filename="editphysical.ui" line="184"/>
         <source>DMX Connector</source>
-        <translation>Connection DMX</translation>
+        <translation>Connecteur DMX</translation>
     </message>
     <message>
-        <location filename="editmode.ui" line="969"/>
+        <location filename="editphysical.ui" line="241"/>
         <source>Copy physical information to clipboard</source>
-        <translation>Copier les informations physiques dans le presse papier</translation>
+        <translation>Copier les données physiques dans le presse-papier</translation>
     </message>
     <message>
-        <location filename="editmode.ui" line="986"/>
+        <location filename="editphysical.ui" line="258"/>
         <source>Paste physical information from clipboard</source>
-        <translation>Coller les informations physiques dans le presse papier</translation>
+        <translation>Coller les données physiques depuis le presse-papier</translation>
     </message>
 </context>
 <context>
     <name>FixtureEditor</name>
     <message>
-        <location filename="fixtureeditor.ui" line="14"/>
+        <location filename="fixtureeditor.ui" line="33"/>
         <source>Fixture</source>
-        <translation>Projecteur</translation>
+        <translation>Appareil</translation>
     </message>
     <message>
-        <location filename="fixtureeditor.ui" line="24"/>
+        <location filename="fixtureeditor.ui" line="43"/>
         <source>General</source>
         <translation>Général</translation>
     </message>
     <message>
-        <location filename="fixtureeditor.ui" line="36"/>
+        <location filename="fixtureeditor.ui" line="55"/>
         <source>Manufacturer</source>
         <translation>Fabricant</translation>
     </message>
     <message>
-        <location filename="fixtureeditor.ui" line="49"/>
+        <location filename="fixtureeditor.ui" line="68"/>
         <source>The manufacturer name for this fixture (e.g. Martin)</source>
-        <translation>Le nom du fabricant du projecteur (ex : Martin)</translation>
+        <translation>Le nom du fabricant de l&apos;appareil (ex : Martin)</translation>
     </message>
     <message>
-        <location filename="fixtureeditor.ui" line="56"/>
+        <location filename="fixtureeditor.ui" line="75"/>
         <source>Model</source>
         <translation>Modèle</translation>
     </message>
     <message>
-        <location filename="fixtureeditor.ui" line="69"/>
+        <location filename="fixtureeditor.ui" line="88"/>
         <source>The model name for this fixture (e.g. MAC250)</source>
-        <translation>Le nom du modèle du projecteur (ex : MAC250)</translation>
+        <translation>Le nom du modèle de l&apos;appareil (ex : MAC250)</translation>
     </message>
     <message>
-        <location filename="fixtureeditor.ui" line="76"/>
+        <location filename="fixtureeditor.ui" line="95"/>
         <source>Type</source>
         <translation>Type</translation>
     </message>
     <message>
-        <location filename="fixtureeditor.ui" line="89"/>
+        <location filename="fixtureeditor.ui" line="108"/>
         <source>The general type of this fixture</source>
-        <translation>Le type de projecteur</translation>
+        <translation>Le type de l&apos;appareil</translation>
     </message>
     <message>
-        <location filename="fixtureeditor.ui" line="210"/>
+        <location filename="fixtureeditor.ui" line="226"/>
+        <source>LED Bar (Beams)</source>
+        <translation type="unfinished">Barre LED (Beams)</translation>
+    </message>
+    <message>
+        <location filename="fixtureeditor.ui" line="235"/>
+        <source>LED Bar (Pixels)</source>
+        <translation>Barre LED (Pixels)</translation>
+    </message>
+    <message>
+        <location filename="fixtureeditor.ui" line="247"/>
         <source>Author</source>
         <translation>Auteur</translation>
     </message>
     <message>
-        <location filename="fixtureeditor.ui" line="217"/>
+        <location filename="fixtureeditor.ui" line="254"/>
         <source>The name of the author of this fixture definition</source>
         <oldsource>The author name of this fixture definition</oldsource>
-        <translation>Le nom de l&apos;auteur du fichier de définition</translation>
+        <translation>Le nom de l&apos;auteur de ce fichier de définition</translation>
     </message>
     <message>
-        <location filename="fixtureeditor.ui" line="238"/>
-        <location filename="fixtureeditor.ui" line="438"/>
+        <location filename="fixtureeditor.ui" line="298"/>
+        <location filename="fixtureeditor.ui" line="498"/>
         <source>Channels</source>
         <translation>Canaux</translation>
     </message>
     <message>
-        <location filename="fixtureeditor.ui" line="260"/>
-        <location filename="fixtureeditor.ui" line="433"/>
+        <location filename="fixtureeditor.ui" line="320"/>
+        <location filename="fixtureeditor.ui" line="493"/>
         <source>Name</source>
         <translation>Nom</translation>
     </message>
     <message>
-        <location filename="fixtureeditor.ui" line="265"/>
+        <location filename="fixtureeditor.ui" line="325"/>
         <source>Group</source>
         <translation>Groupe</translation>
     </message>
     <message>
-        <location filename="fixtureeditor.ui" line="273"/>
+        <location filename="fixtureeditor.ui" line="333"/>
         <source>Add a channel</source>
         <translation>Ajouter un canal</translation>
     </message>
     <message>
-        <location filename="fixtureeditor.ui" line="293"/>
+        <location filename="fixtureeditor.ui" line="353"/>
         <source>Remove the selected channel</source>
-        <translation>Supprimer ce canal</translation>
+        <translation>Supprimer le canal sélectionné</translation>
     </message>
     <message>
-        <location filename="fixtureeditor.ui" line="313"/>
+        <location filename="fixtureeditor.ui" line="373"/>
         <source>Edit the selected channel</source>
-        <translation>Modifier ce canal</translation>
+        <translation>Éditer le canal sélectionné</translation>
     </message>
     <message>
-        <location filename="fixtureeditor.ui" line="340"/>
+        <location filename="fixtureeditor.ui" line="400"/>
         <source>Copy the selected channel to the clipboard</source>
-        <translation>Copier ce canal</translation>
+        <translation>Copier le canal dans le presse-papier</translation>
     </message>
     <message>
-        <location filename="fixtureeditor.ui" line="360"/>
+        <location filename="fixtureeditor.ui" line="420"/>
         <source>Paste the channel in clipboard to this fixture</source>
-        <translation>Coller ce canal</translation>
+        <translation>Coller le canal depuis le presse-papier vers cet appareil</translation>
     </message>
     <message>
-        <location filename="fixtureeditor.ui" line="393"/>
+        <location filename="fixtureeditor.ui" line="453"/>
         <source>Open/close all channel items</source>
-        <translation>Ouvrir/Fermer tous les canaux</translation>
+        <translation>Déplier/Replier tous les canaux</translation>
     </message>
     <message>
-        <location filename="fixtureeditor.ui" line="414"/>
+        <location filename="fixtureeditor.ui" line="474"/>
         <source>Modes</source>
         <translation>Modes</translation>
     </message>
     <message>
-        <location filename="fixtureeditor.ui" line="443"/>
+        <location filename="fixtureeditor.ui" line="503"/>
         <source>Heads</source>
-        <translation>Sources</translation>
+        <translation>Têtes</translation>
     </message>
     <message>
-        <location filename="fixtureeditor.ui" line="451"/>
+        <location filename="fixtureeditor.ui" line="511"/>
         <source>Add a mode</source>
         <translation>Ajouter un mode</translation>
     </message>
     <message>
-        <location filename="fixtureeditor.ui" line="471"/>
+        <location filename="fixtureeditor.ui" line="531"/>
         <source>Remove the selected mode</source>
-        <translation>Supprimer ce mode</translation>
-    </message>
-    <message>
-        <location filename="fixtureeditor.ui" line="491"/>
-        <source>Edit the selected mode</source>
-        <translation>Modifier ce mode</translation>
-    </message>
-    <message>
-        <location filename="fixtureeditor.ui" line="518"/>
-        <source>Create a copy of the selected mode</source>
-        <translation>Dupliquer ce mode</translation>
+        <translation>Supprimer le mode sélectionné</translation>
     </message>
     <message>
         <location filename="fixtureeditor.ui" line="551"/>
+        <source>Edit the selected mode</source>
+        <translation>Éditer le mode sélectionné</translation>
+    </message>
+    <message>
+        <location filename="fixtureeditor.ui" line="578"/>
+        <source>Create a copy of the selected mode</source>
+        <translation>Dupliquer le mode sélectionné</translation>
+    </message>
+    <message>
+        <location filename="fixtureeditor.ui" line="611"/>
         <source>Open/close all mode items</source>
-        <translation>Ouvrir/Fermer tous les modes</translation>
+        <translation>Déplier/Replier tous les modes</translation>
+    </message>
+    <message>
+        <location filename="fixtureeditor.ui" line="632"/>
+        <source>Aliases</source>
+        <translation>Alias</translation>
+    </message>
+    <message>
+        <location filename="fixtureeditor.ui" line="650"/>
+        <source>In mode</source>
+        <translation>Dans le mode</translation>
+    </message>
+    <message>
+        <location filename="fixtureeditor.ui" line="667"/>
+        <source>Add a new alias</source>
+        <translation>Ajouter un nouvel alias</translation>
+    </message>
+    <message>
+        <location filename="fixtureeditor.ui" line="687"/>
+        <source>with</source>
+        <translation>avec</translation>
+    </message>
+    <message>
+        <location filename="fixtureeditor.ui" line="694"/>
+        <source>replace</source>
+        <translation>remplace</translation>
+    </message>
+    <message>
+        <location filename="fixtureeditor.ui" line="711"/>
+        <location filename="fixtureeditor.ui" line="764"/>
+        <source>Alias</source>
+        <translation>Alias</translation>
+    </message>
+    <message>
+        <location filename="fixtureeditor.ui" line="716"/>
+        <source>Mode</source>
+        <translation>Mode</translation>
+    </message>
+    <message>
+        <location filename="fixtureeditor.ui" line="721"/>
+        <source>Base channel</source>
+        <translation>Canal d&apos;origine</translation>
+    </message>
+    <message>
+        <location filename="fixtureeditor.ui" line="726"/>
+        <source>Override channel</source>
+        <translation>Canal modifié</translation>
+    </message>
+    <message>
+        <location filename="fixtureeditor.ui" line="744"/>
+        <source>Remove the currently selected alias</source>
+        <translation>Supprimer l&apos;alias sélectionné</translation>
+    </message>
+    <message>
+        <location filename="fixtureeditor.ui" line="275"/>
+        <source>Physical</source>
+        <translation>Données physiques</translation>
     </message>
 </context>
 <context>
     <name>QLCFixtureEditor</name>
     <message>
-        <location filename="fixtureeditor.cpp" line="193"/>
+        <location filename="fixtureeditor.cpp" line="207"/>
         <source>Close</source>
         <translation>Fermer</translation>
     </message>
     <message>
-        <location filename="fixtureeditor.cpp" line="194"/>
+        <location filename="fixtureeditor.cpp" line="208"/>
         <source>Do you want to save changes to fixture
 &quot;%1&quot;
 before closing?</source>
-        <translation>Voulez vous enregistrer les modifications du projecteur %1 avant de fermer ?</translation>
+        <translation>Voulez vous enregistrer les modifications de l&apos;appareil
+&quot;%1&quot;
+avant de quitter&#xa0;?</translation>
     </message>
     <message>
-        <location filename="fixtureeditor.cpp" line="223"/>
-        <location filename="fixtureeditor.cpp" line="233"/>
+        <location filename="fixtureeditor.cpp" line="237"/>
+        <location filename="fixtureeditor.cpp" line="247"/>
         <source>Missing important information</source>
         <translation>Information importante manquante</translation>
     </message>
     <message>
-        <location filename="fixtureeditor.cpp" line="224"/>
+        <location filename="fixtureeditor.cpp" line="238"/>
         <source>Missing manufacturer name.
 Unable to save fixture.</source>
-        <translation>Impossible d&apos;enregistrer : pas de nom de fabricant.</translation>
+        <translation>Nom du fabricant manquant.
+Impossible d&apos;enregistrer l&apos;appareil.</translation>
     </message>
     <message>
-        <location filename="fixtureeditor.cpp" line="234"/>
+        <location filename="fixtureeditor.cpp" line="248"/>
         <source>Missing fixture model name.
 Unable to save fixture.</source>
-        <translation>Impossible d&apos;enregistrer : pas de nom de modèle de projecteur.</translation>
+        <translation>Nom du modèle manquant.
+Impossible d&apos;enregistrer l&apos;appareil.</translation>
     </message>
     <message>
-        <location filename="fixtureeditor.cpp" line="263"/>
-        <location filename="fixtureeditor.cpp" line="321"/>
+        <location filename="fixtureeditor.cpp" line="278"/>
+        <location filename="fixtureeditor.cpp" line="337"/>
         <source>Fixture saving failed</source>
-        <translation>Erreur d&apos;enregistrment</translation>
-    </message>
-    <message>
-        <location filename="fixtureeditor.cpp" line="264"/>
-        <location filename="fixtureeditor.cpp" line="322"/>
-        <source>Unable to save fixture definition:
-%1</source>
-        <oldsource>Unable to save fixture definition: </oldsource>
-        <translation>Impossible d&apos;enregistrer : %1</translation>
+        <translation>Erreur lors de l&apos;enregistrement</translation>
     </message>
     <message>
         <location filename="fixtureeditor.cpp" line="279"/>
+        <location filename="fixtureeditor.cpp" line="338"/>
+        <source>Unable to save fixture definition:
+%1</source>
+        <oldsource>Unable to save fixture definition: </oldsource>
+        <translation>Impossible d&apos;enregistrer la définition de l&apos;appareil :
+%1</translation>
+    </message>
+    <message>
+        <location filename="fixtureeditor.cpp" line="294"/>
         <source>Save fixture definition</source>
-        <translation>Sauvegarde des Spécifications</translation>
+        <translation>Enregistrer la définition de l&apos;appareil</translation>
     </message>
     <message>
-        <location filename="fixtureeditor.cpp" line="340"/>
+        <location filename="fixtureeditor.cpp" line="371"/>
         <source>New Fixture</source>
-        <translation>Nouveau projecteur</translation>
+        <translation>Nouvel appareil</translation>
     </message>
     <message>
-        <location filename="fixtureeditor.cpp" line="411"/>
+        <location filename="fixtureeditor.cpp" line="448"/>
+        <location filename="fixtureeditor.cpp" line="534"/>
         <source>Channel already exists</source>
-        <translation>Ce canal existe déjà</translation>
+        <translation>Canal existant</translation>
     </message>
     <message>
-        <location filename="fixtureeditor.cpp" line="412"/>
+        <location filename="fixtureeditor.cpp" line="449"/>
+        <location filename="fixtureeditor.cpp" line="535"/>
         <source>A channel by the name &quot;%1&quot; already exists!</source>
-        <translation>Un canal nommé &quot;%1&quot; existe déjà !</translation>
+        <translation>Un canal avec le nom &quot;%1&quot; existe déjà
+!</translation>
     </message>
     <message>
-        <location filename="fixtureeditor.cpp" line="419"/>
+        <location filename="fixtureeditor.cpp" line="456"/>
+        <location filename="fixtureeditor.cpp" line="541"/>
         <source>Channel has no name</source>
-        <translation>Le canal n&apos;a pas de nom</translation>
+        <translation>Nom du canal manquant</translation>
     </message>
     <message>
-        <location filename="fixtureeditor.cpp" line="420"/>
+        <location filename="fixtureeditor.cpp" line="457"/>
+        <location filename="fixtureeditor.cpp" line="542"/>
         <source>You must give the channel a descriptive name!</source>
-        <translation>Vous devez donner au canal un nom explicite !</translation>
+        <translation>Veuillez donner un nom au canal
+!</translation>
     </message>
     <message>
-        <location filename="fixtureeditor.cpp" line="455"/>
-        <source>Are you sure you wish to remove channel: %1</source>
-        <translation>Etes-vous certain de vouloir supprimer le canal : %1</translation>
+        <location filename="fixtureeditor.cpp" line="494"/>
+        <source>Are you sure you wish to remove channel: %1?</source>
+        <translation>Êtes-vous sûr(e) de vouloir supprimer le canal &quot;%1&quot;&#xa0;?</translation>
     </message>
     <message>
-        <location filename="fixtureeditor.cpp" line="588"/>
-        <location filename="fixtureeditor.cpp" line="623"/>
-        <location filename="fixtureeditor.cpp" line="839"/>
+        <location filename="fixtureeditor.cpp" line="813"/>
+        <source>Are you sure you wish to remove mode: %1?</source>
+        <translation>Êtes-vous sûr(e) de vouloir supprimer le mode &quot;%1&quot;&#xa0;?</translation>
+    </message>
+    <message>
+        <location filename="fixtureeditor.cpp" line="654"/>
+        <location filename="fixtureeditor.cpp" line="689"/>
+        <location filename="fixtureeditor.cpp" line="914"/>
         <source>Edit</source>
-        <translation>Edition</translation>
+        <translation>Éditer</translation>
     </message>
     <message>
-        <location filename="fixtureeditor.cpp" line="589"/>
-        <location filename="fixtureeditor.cpp" line="625"/>
+        <location filename="fixtureeditor.cpp" line="655"/>
+        <location filename="fixtureeditor.cpp" line="691"/>
         <source>Copy</source>
         <translation>Copier</translation>
     </message>
     <message>
-        <location filename="fixtureeditor.cpp" line="590"/>
-        <location filename="fixtureeditor.cpp" line="627"/>
+        <location filename="fixtureeditor.cpp" line="656"/>
+        <location filename="fixtureeditor.cpp" line="693"/>
         <source>Paste</source>
         <translation>Coller</translation>
     </message>
     <message>
-        <location filename="fixtureeditor.cpp" line="591"/>
-        <location filename="fixtureeditor.cpp" line="629"/>
-        <location filename="fixtureeditor.cpp" line="845"/>
+        <location filename="fixtureeditor.cpp" line="657"/>
+        <location filename="fixtureeditor.cpp" line="695"/>
+        <location filename="fixtureeditor.cpp" line="920"/>
         <source>Remove</source>
         <translation>Supprimer</translation>
     </message>
     <message>
-        <location filename="fixtureeditor.cpp" line="602"/>
+        <location filename="fixtureeditor.cpp" line="668"/>
         <source>Channels</source>
         <translation>Canaux</translation>
     </message>
     <message>
-        <location filename="fixtureeditor.cpp" line="698"/>
-        <location filename="fixtureeditor.cpp" line="707"/>
+        <location filename="fixtureeditor.cpp" line="766"/>
+        <location filename="fixtureeditor.cpp" line="775"/>
         <source>Unable to add mode</source>
         <translation>Impossible d&apos;ajouter un mode</translation>
     </message>
     <message>
-        <location filename="fixtureeditor.cpp" line="699"/>
+        <location filename="fixtureeditor.cpp" line="767"/>
         <source>Another mode by that name already exists</source>
-        <translation>Il existe déjà un mode portant ce nom</translation>
+        <translation>Un mode portant ce nom existe déjà</translation>
     </message>
     <message>
-        <location filename="fixtureeditor.cpp" line="708"/>
+        <location filename="fixtureeditor.cpp" line="776"/>
         <source>You must give a name to the mode</source>
-        <translation>Vous devez nommer le mode</translation>
+        <translation>Veuillez donner un nom au mode</translation>
     </message>
     <message>
-        <location filename="fixtureeditor.cpp" line="742"/>
+        <location filename="fixtureeditor.cpp" line="812"/>
         <source>Remove Mode</source>
-        <translation>Mode Suppression</translation>
+        <translation>Suppression du mode</translation>
     </message>
     <message>
-        <location filename="fixtureeditor.cpp" line="743"/>
-        <source>Are you sure you wish to remove mode: %1</source>
-        <translation>Etes-vous certain de vouloir supprimer le mode : %1</translation>
-    </message>
-    <message>
-        <location filename="fixtureeditor.cpp" line="785"/>
+        <location filename="fixtureeditor.cpp" line="860"/>
         <source>Rename new mode</source>
-        <translation>Renommez le mode</translation>
+        <translation>Nommage du nouveau mode</translation>
     </message>
     <message>
-        <location filename="fixtureeditor.cpp" line="786"/>
+        <location filename="fixtureeditor.cpp" line="861"/>
         <source>Give a unique name for the mode</source>
-        <translation>Donnez un nom unique au mode</translation>
+        <translation>Donnez un nom unique au nouveau mode</translation>
     </message>
     <message>
-        <location filename="fixtureeditor.cpp" line="788"/>
+        <location filename="fixtureeditor.cpp" line="863"/>
         <source>Copy of %1</source>
         <translation>Copie de %1</translation>
     </message>
     <message>
-        <location filename="fixtureeditor.cpp" line="798"/>
+        <location filename="fixtureeditor.cpp" line="873"/>
         <source>Invalid name</source>
         <translation>Nom invalide</translation>
     </message>
     <message>
-        <location filename="fixtureeditor.cpp" line="799"/>
+        <location filename="fixtureeditor.cpp" line="874"/>
         <source>Another mode by that name already exists.</source>
-        <translation>Il existe déjà un mode portant ce nom.</translation>
+        <translation>Un mode portant ce nom existe déjà.</translation>
     </message>
     <message>
-        <location filename="fixtureeditor.cpp" line="842"/>
+        <location filename="fixtureeditor.cpp" line="917"/>
         <source>Clone</source>
         <translation>Dupliquer</translation>
     </message>
     <message>
-        <location filename="fixtureeditor.cpp" line="850"/>
+        <location filename="fixtureeditor.cpp" line="925"/>
         <source>Modes</source>
         <translation>Modes</translation>
     </message>

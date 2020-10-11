@@ -24,16 +24,18 @@
 #define KXMLQLCGMSliderModeNormal "Normal"
 #define KXMLQLCGMSliderModeInverted "Inverted"
 
+#include <climits>
+
 #include "grandmaster.h"
 #include "qlcmacros.h"
 
 GrandMaster::GrandMaster(QObject *parent)
     : QObject(parent)
+    , m_valueMode(Reduce)
+    , m_channelMode(Intensity)
+    , m_value(255)
+    , m_fraction(1.0)
 {
-    m_channelMode = Intensity;
-    m_valueMode = Reduce;
-    m_value = 255;
-    m_fraction = 1.0;
 }
 
 GrandMaster::~GrandMaster()

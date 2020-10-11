@@ -22,6 +22,7 @@
 
 #include <QWidget>
 #include "ui_scripteditor.h"
+#include "function.h"
 
 class QTextDocument;
 class MasterTimer;
@@ -52,36 +53,57 @@ private:
     QTextDocument* m_document;
     Script* m_script;
     Doc* m_doc;
+    QString m_lastUsedPath;
 
     /************************************************************************
      * Add menu
      ************************************************************************/
 private:
     void initAddMenu();
+    QString getFilePath();
 
 private slots:
     void slotNameEdited(const QString& text);
     void slotContentsChanged();
+    void slotFunctionStopped(quint32 id);
 
     void slotAddStartFunction();
     void slotAddStopFunction();
+    void slotAddBlackout();
     void slotAddWait();
     void slotAddWaitKey();
     void slotAddSetHtp();
     void slotAddSetLtp();
     void slotAddSetFixture();
+    void slotAddSystemCommand();
     void slotAddComment();
+    void slotAddRandom();
+    void slotAddFilePath();
+    void slotCheckSyntax();
+
+private:
+    FunctionParent functionParent() const;
 
 private:
     QAction* m_addStartFunctionAction;
     QAction* m_addStopFunctionAction;
+    QAction* m_addBlackoutAction;
     QAction* m_addWaitAction;
     QAction* m_addWaitKeyAction;
     QAction* m_addSetHtpAction;
     QAction* m_addSetLtpAction;
     QAction* m_addSetFixtureAction;
+    QAction* m_addSystemCommandAction;
     QAction* m_addCommentAction;
+    QAction* m_addRandomAction;
+    QAction* m_addFilePathAction;
     QMenu* m_addMenu;
+
+    /************************************************************************
+     * Test execution
+     ************************************************************************/
+protected slots:
+    void slotTestRun();
 };
 
 /** @} */

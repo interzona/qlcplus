@@ -17,12 +17,13 @@
   limitations under the License.
 */
 
-#include <QDesktopWidget>
+#include <QComboBox>
 #include <QStyleFactory>
 #include <QApplication>
 #include <QSettings>
 #include <QLocale>
 #include <QWidget>
+#include <QScreen>
 #include <QStyle>
 #include <QRect>
 
@@ -32,22 +33,21 @@
  * Widget visibility helper
  ****************************************************************************/
 
-void AppUtil::ensureWidgetIsVisible(QWidget* widget)
+void AppUtil::ensureWidgetIsVisible(QWidget *widget)
 {
     if (widget == NULL)
         return;
 
-    QWidget* parent = widget->parentWidget();
+    QWidget *parent = widget->parentWidget();
     if (widget->windowFlags() & Qt::Window)
     {
         // The widget is a top-level window (a dialog, for instance)
         // @todo Use the screen where the main application currently is?
-        QDesktopWidget dw;
-        QWidget* screen(dw.screen());
+        QScreen *screen = QGuiApplication::screens().first();
         if (screen != NULL)
         {
             // Move the widget to the center of the default screen
-            const QRect screenRect(screen->rect());
+            const QRect screenRect(screen->availableGeometry());
             if (screenRect.contains(widget->pos()) == false)
             {
                 QRect widgetRect(widget->rect());
@@ -89,7 +89,11 @@ QStyle* AppUtil::saneStyle()
     if (s_saneStyle == NULL)
     {
         QSettings settings;
+#if QT_VERSION < QT_VERSION_CHECK(5, 0, 0)
         QVariant var = settings.value(SETTINGS_SLIDERSTYLE, QString("Cleanlooks"));
+#else
+        QVariant var = settings.value(SETTINGS_SLIDERSTYLE, QString("Fusion"));
+#endif
         QStringList keys(QStyleFactory::keys());
         if (keys.contains(var.toString()) == true)
             s_saneStyle = QStyleFactory::create(var.toString());
@@ -98,4 +102,58 @@ QStyle* AppUtil::saneStyle()
     }
 
     return s_saneStyle;
+}
+
+/*****************************************************************************
+ * Digits
+ *****************************************************************************/
+
+unsigned int AppUtil::digits(unsigned int n)
+{
+    unsigned int res = 1;
+    while (n /= 10)
+        ++res;
+    return res;
+}
+
+/*****************************************************************************
+ * ComboBoxDelegate
+ *****************************************************************************/
+
+ComboBoxDelegate::ComboBoxDelegate(const QStringList &strings, QWidget *parent)
+    : QStyledItemDelegate(parent)
+    , m_strings(strings)
+{
+}
+
+QWidget *ComboBoxDelegate::createEditor(QWidget *parent,
+        const QStyleOptionViewItem &/*option*/,
+        const QModelIndex &/*index*/) const
+{
+    QComboBox *comboBox = new QComboBox(parent);
+    comboBox->addItems(m_strings);
+    return comboBox;
+}
+
+void ComboBoxDelegate::setEditorData(QWidget *editor,
+        const QModelIndex &index) const
+{
+    int value = index.model()->data(index, Qt::UserRole).toInt();
+    QComboBox *comboBox = static_cast<QComboBox*>(editor);
+    comboBox->setCurrentIndex(value);
+}
+
+void ComboBoxDelegate::setModelData(QWidget *editor, QAbstractItemModel *model,
+        const QModelIndex &index) const
+{
+    QComboBox *comboBox = static_cast<QComboBox*>(editor);
+    int value = comboBox->currentIndex();
+    model->setData(index, value, Qt::UserRole);
+    model->setData(index, comboBox->currentText(), Qt::DisplayRole);
+}
+
+void ComboBoxDelegate::updateEditorGeometry(QWidget *editor,
+        const QStyleOptionViewItem &option, const QModelIndex &/*index*/) const
+{
+    editor->setGeometry(option.rect);
 }

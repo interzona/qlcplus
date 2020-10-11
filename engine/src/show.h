@@ -1,5 +1,5 @@
 /*
-  Q Light Controller
+  Q Light Controller Plus
   show.h
 
   Copyright (c) Massimo Callegari
@@ -27,10 +27,10 @@
 #include "function.h"
 #include "track.h"
 
-class QDomDocument;
+class QXmlStreamReader;
 class ShowRunner;
 
-/** @addtogroup engine Engine
+/** @addtogroup engine_functions Functions
  * @{
  */
 
@@ -46,11 +46,17 @@ public:
     Show(Doc* doc);
     virtual ~Show();
 
+    /** @reimp */
+    QIcon getIcon() const;
+
+    /** @reimp */
+    quint32 totalDuration();
+
     /*********************************************************************
      * Copying
      *********************************************************************/
 public:
-    /** @reimpl */
+    /** @reimp */
     Function* createCopy(Doc* doc, bool addToDoc = true);
 
     /** Copy the contents for this function from another function */
@@ -77,7 +83,7 @@ public:
      * Add a track to this show. If the track is already a
      * member of the show, this call fails.
      *
-     * @param fid The track to add
+     * @param id The track to add
      * @return true if successful, otherwise false
      */
     bool addTrack(Track *track, quint32 id = Track::invalidId());
@@ -86,7 +92,7 @@ public:
      * Remove a track from this show. If the track is not a
      * member of the show, this call fails.
      *
-     * @param fid The track to remove
+     * @param id The track to remove
      * @return true if successful, otherwise false
      */
     bool removeTrack(quint32 id);
@@ -122,25 +128,35 @@ protected:
      *********************************************************************/
 public:
     /** Save function's contents to an XML document */
-    bool saveXML(QDomDocument* doc, QDomElement* wksp_root);
+    bool saveXML(QXmlStreamWriter *doc);
 
     /** Load function's contents from an XML document */
-    bool loadXML(const QDomElement& root);
+    bool loadXML(QXmlStreamReader &root);
 
     /** @reimp */
     void postLoad();
+
+public:
+    /** @reimp */
+    bool contains(quint32 functionId);
+
+    /** @reimp */
+    QList<quint32> components();
 
     /*********************************************************************
      * Running
      *********************************************************************/
 public:
-    /** @reimpl */
+    /** @reimp */
     void preRun(MasterTimer* timer);
 
-    /** @reimpl */
+    /** @reimp */
+    void setPause(bool enable);
+
+    /** @reimp */
     void write(MasterTimer* timer, QList<Universe*> universes);
 
-    /** @reimpl */
+    /** @reimp */
     void postRun(MasterTimer* timer, QList<Universe*> universes);
 
 protected slots:
@@ -160,8 +176,8 @@ protected:
      * Attributes
      *************************************************************************/
 public:
-    /** @reimpl */
-    void adjustAttribute(qreal fraction, int attributeIndex = 0);
+    /** @reimp */
+    int adjustAttribute(qreal fraction, int attributeId = 0);
 };
 
 /** @} */

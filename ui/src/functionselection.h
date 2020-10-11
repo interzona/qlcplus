@@ -65,6 +65,7 @@ public slots:
 private:
     Doc* m_doc;
     FunctionsTreeWidget *m_funcTree;
+    bool m_isInitializing;
 
     /*********************************************************************
      * None entry
@@ -74,6 +75,17 @@ public:
 
 private:
     bool m_none;
+    QTreeWidgetItem *m_noneItem;
+
+    /*********************************************************************
+     * New track entry
+     *********************************************************************/
+public:
+    void showNewTrack(bool show = false);
+
+private:
+    bool m_newTrack;
+    QTreeWidgetItem *m_newTrackItem;
 
     /*********************************************************************
      * Multi-selection
@@ -123,11 +135,15 @@ protected slots:
     void slotCollectionChecked(bool state);
     void slotEFXChecked(bool state);
     void slotChaserChecked(bool state);
+    void slotSequenceChecked(bool state);
     void slotSceneChecked(bool state);
     void slotScriptChecked(bool state);
     void slotRGBMatrixChecked(bool state);
     void slotShowChecked(bool state);
     void slotAudioChecked(bool state);
+#if QT_VERSION >= 0x050000
+    void slotVideoChecked(bool state);
+#endif
 
 private:
     int m_filter;
@@ -151,6 +167,9 @@ protected:
      * Selection
      *********************************************************************/
 public:
+    /** Set current selection of function IDs in the tree */
+    void setSelection(QList<quint32> selection);
+
     /** Get a list of selected function IDs */
     const QList <quint32> selection() const;
 

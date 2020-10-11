@@ -1,8 +1,9 @@
 /*
-  Q Light Controller
+  Q Light Controller Plus
   app.h
 
   Copyright (c) Heikki Junnila
+                Massimo Callegari
 
   Licensed under the Apache License, Version 2.0 (the "License");
   you may not use this file except in compliance with the License.
@@ -30,8 +31,6 @@
 #include "doc.h"
 
 class QProgressDialog;
-class QDomDocument;
-class QDomElement;
 class QMessageBox;
 class QToolButton;
 class QFileDialog;
@@ -43,11 +42,35 @@ class QAction;
 class QLabel;
 class App;
 
+#if QT_VERSION >= 0x050000
+class VideoProvider;
+#endif
+
 /** @addtogroup ui UI
  * @{
  */
 
 #define KXMLQLCWorkspace "Workspace"
+
+class DetachedContext : public QMainWindow
+{
+    Q_OBJECT
+
+public:
+    DetachedContext() {}
+
+protected slots:
+    void closeEvent(QCloseEvent *ev)
+    {
+        emit closing();
+        // avoid the real context to be destroyed !
+        setCentralWidget(NULL);
+        QMainWindow::closeEvent(ev);
+    }
+
+signals:
+    void closing();
+};
 
 class App : public QMainWindow
 {
@@ -61,15 +84,24 @@ public:
     App();
     ~App();
     void startup();
+    void enableOverscan();
+    void disableGUI();
 
 private:
     void init();
     void closeEvent(QCloseEvent*);
     void setActiveWindow(const QString& name);
 
+#if defined(WIN32) || defined(Q_OS_WIN)
+protected:
+    bool nativeEvent(const QByteArray & eventType, void * message, long * result);
+#endif
+
 private:
     QTabWidget* m_tab;
     QDir m_workingDirectory;
+    bool m_overscan;
+    bool m_noGui;
 
     /*********************************************************************
      * Progress dialog
@@ -94,6 +126,7 @@ public:
 
 private slots:
     void slotDocModified(bool state);
+    void slotUniverseWritten(quint32 idx, const QByteArray& ua);
 
 private:
     void initDoc();
@@ -121,6 +154,7 @@ private:
     void initActions();
     void initToolBar();
     bool handleFileError(QFile::FileError error);
+    bool saveModifiedDoc(const QString & title, const QString & message);
 
 public slots:
     bool slotFileNew();
@@ -139,6 +173,9 @@ public slots:
     void slotRunningFunctionsChanged();
     void slotDumpDmxIntoFunction();
     void slotFunctionLiveEdit();
+    void slotLiveEditVirtualConsole();
+    void slotDetachContext(int index);
+    void slotReattachContext();
 
     void slotHelpIndex();
     void slotHelpAbout();
@@ -159,9 +196,11 @@ private:
     QAction* m_controlPanicAction;
     QAction* m_dumpDmxAction;
     QAction* m_liveEditAction;
+    QAction* m_liveEditVirtualConsoleAction;
 
     QAction* m_helpIndexAction;
     QAction* m_helpAboutAction;
+    QAction* m_quitAction;
     QMenu* m_fileOpenMenu;
     QMenu* m_fadeAndStopMenu;
 
@@ -173,6 +212,9 @@ private:
      *********************************************************************/
 private:
     DmxDumpFactoryProperties *m_dumpProperties;
+#if QT_VERSION >= 0x050000
+    VideoProvider *m_videoProvider;
+#endif
 
     /*********************************************************************
      * Load & Save
@@ -206,7 +248,7 @@ public:
      *
      * @param doc The XML document to load from.
      */
-    bool loadXML(const QDomDocument& doc, bool goToConsole = false);
+    bool loadXML(QXmlStreamReader &doc, bool goToConsole = false, bool fromMemory = false);
 
     /**
      * Save workspace contents to a file with the given name. Changes the

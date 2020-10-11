@@ -27,7 +27,8 @@
 #include "fixture.h"
 
 FadeChannel::FadeChannel()
-    : m_fixture(Fixture::invalidId())
+    : m_flags(0)
+    , m_fixture(Fixture::invalidId())
     , m_universe(Universe::invalid())
     , m_channel(QLCChannel::invalid())
     , m_address(QLCChannel::invalid())
@@ -41,7 +42,8 @@ FadeChannel::FadeChannel()
 }
 
 FadeChannel::FadeChannel(const FadeChannel& ch)
-    : m_fixture(ch.m_fixture)
+    : m_flags(ch.m_flags)
+    , m_fixture(ch.m_fixture)
     , m_universe(ch.m_universe)
     , m_channel(ch.m_channel)
     , m_address(ch.m_address)
@@ -52,10 +54,12 @@ FadeChannel::FadeChannel(const FadeChannel& ch)
     , m_fadeTime(ch.m_fadeTime)
     , m_elapsed(ch.m_elapsed)
 {
+    //qDebug() << Q_FUNC_INFO;
 }
 
 FadeChannel::FadeChannel(const Doc *doc, quint32 fxi, quint32 channel)
-    : m_fixture(fxi)
+    : m_flags(0)
+    , m_fixture(fxi)
     , m_channel(channel)
     , m_start(0)
     , m_target(0)
@@ -64,21 +68,31 @@ FadeChannel::FadeChannel(const Doc *doc, quint32 fxi, quint32 channel)
     , m_fadeTime(0)
     , m_elapsed(0)
 {
-    Fixture* fixture = doc->fixture(fxi);
-    if (fixture == NULL)
-    {
-        m_universe = Universe::invalid();
-        m_address = QLCChannel::invalid();
-    }
-    else
-    {
-        m_universe = fixture->universe();
-        m_address = fixture->address();
-    }
+    autoDetect(doc);
 }
 
 FadeChannel::~FadeChannel()
 {
+}
+
+FadeChannel &FadeChannel::operator=(const FadeChannel &fc)
+{
+    if (this != &fc)
+    {
+        m_flags = fc.m_flags;
+        m_fixture = fc.m_fixture;
+        m_universe = fc.m_universe;
+        m_channel = fc.m_channel;
+        m_address = fc.m_address;
+        m_start = fc.m_start;
+        m_target = fc.m_target;
+        m_current = fc.m_current;
+        m_ready = fc.m_ready;
+        m_fadeTime = fc.m_fadeTime;
+        m_elapsed = fc.m_elapsed;
+    }
+
+    return *this;
 }
 
 bool FadeChannel::operator==(const FadeChannel& ch) const
@@ -86,20 +100,93 @@ bool FadeChannel::operator==(const FadeChannel& ch) const
     return (m_fixture == ch.m_fixture && m_channel == ch.m_channel);
 }
 
-void FadeChannel::setFixture(const Doc *doc, quint32 id)
+int FadeChannel::flags() const
 {
-    m_fixture = id;
-    Fixture* fixture = doc->fixture(id);
+    return m_flags;
+}
+
+void FadeChannel::setFlags(int flags)
+{
+    m_flags = flags;
+}
+
+void FadeChannel::addFlag(int flag)
+{
+    m_flags |= flag;
+}
+
+void FadeChannel::removeFlag(int flag)
+{
+    m_flags &= (~flag);
+}
+
+void FadeChannel::autoDetect(const Doc *doc)
+{
+    bool fixtureWasInvalid = false;
+    // reset before autodetecting
+    setFlags(0);
+
+    /* on invalid fixture, channel number is most likely
+     * absolute (SimpleDesk/CueStack do it this way), so attempt
+     * a reverse lookup to try and find the Fixture ID */
+    if (m_fixture == Fixture::invalidId())
+    {
+        fixtureWasInvalid = true;
+        m_fixture = doc->fixtureForAddress(channel());
+    }
+
+    Fixture *fixture = doc->fixture(m_fixture);
     if (fixture == NULL)
     {
         m_universe = Universe::invalid();
         m_address = QLCChannel::invalid();
+        addFlag(FadeChannel::HTP | FadeChannel::Intensity | FadeChannel::CanFade);
     }
     else
     {
         m_universe = fixture->universe();
         m_address = fixture->address();
+
+        // if the fixture was invalid at the beginning of this method
+        // it means channel was an absolute address, so, fix it
+        if (fixtureWasInvalid)
+            m_channel -= fixture->address();
+
+        const QLCChannel *channel = fixture->channel(m_channel);
+
+        // non existing channel within fixture
+        if (channel == NULL)
+        {
+            addFlag(FadeChannel::HTP | FadeChannel::Intensity | FadeChannel::CanFade);
+            return;
+        }
+
+        // autodetect the channel type
+        if (fixture->channelCanFade(m_channel))
+            addFlag(FadeChannel::CanFade);
+
+        if (channel != NULL && channel->group() == QLCChannel::Intensity)
+            addFlag(FadeChannel::HTP | FadeChannel::Intensity);
+        else
+            addFlag(FadeChannel::LTP);
+
+        if (fixture->forcedHTPChannels().contains(m_channel))
+        {
+            removeFlag(FadeChannel::LTP);
+            addFlag(FadeChannel::HTP);
+        }
+        else if (fixture->forcedLTPChannels().contains(m_channel))
+        {
+            removeFlag(FadeChannel::HTP);
+            addFlag(FadeChannel::LTP);
+        }
     }
+}
+
+void FadeChannel::setFixture(const Doc *doc, quint32 id)
+{
+    m_fixture = id;
+    autoDetect(doc);
 }
 
 quint32 FadeChannel::fixture() const
@@ -107,14 +194,17 @@ quint32 FadeChannel::fixture() const
     return m_fixture;
 }
 
-quint32 FadeChannel::universe()
+quint32 FadeChannel::universe() const
 {
+    if (m_universe == Universe::invalid())
+        return address() / UNIVERSE_SIZE;
     return m_universe;
 }
 
-void FadeChannel::setChannel(quint32 num)
+void FadeChannel::setChannel(const Doc *doc, quint32 num)
 {
     m_channel = num;
+    autoDetect(doc);
 }
 
 quint32 FadeChannel::channel() const
@@ -125,47 +215,14 @@ quint32 FadeChannel::channel() const
 quint32 FadeChannel::address() const
 {
     if (m_address == QLCChannel::invalid())
-        return m_address;
+        return channel();
 
     return (m_address + channel());
 }
 
-QLCChannel::Group FadeChannel::group(const Doc* doc) const
+quint32 FadeChannel::addressInUniverse() const
 {
-    uint chnum = QLCChannel::invalid();
-    Fixture* fxi = NULL;
-
-    if (fixture() == Fixture::invalidId())
-    {
-        // Do a reverse lookup; which fixture occupies channel()
-        // which is now treated as an absolute DMX address.
-        quint32 id = doc->fixtureForAddress(channel());
-        if (id == Fixture::invalidId())
-            return QLCChannel::Intensity;
-
-        fxi = doc->fixture(id);
-        if (fxi == NULL)
-            return QLCChannel::Intensity;
-
-        // Convert channel() to a relative channel number
-        chnum = channel() - fxi->universeAddress();
-    }
-    else
-    {
-        // This FadeChannel contains a valid fixture ID
-        fxi = doc->fixture(fixture());
-        if (fxi == NULL)
-            return QLCChannel::Intensity;
-
-        // channel() is already a relative channel number
-        chnum = channel();
-    }
-
-    const QLCChannel* ch = fxi->channel(chnum);
-    if (ch == NULL)
-        return QLCChannel::Intensity;
-    else
-        return ch->group();
+    return address() % UNIVERSE_SIZE;
 }
 
 void FadeChannel::setStart(uchar value)
@@ -175,7 +232,7 @@ void FadeChannel::setStart(uchar value)
 
 uchar FadeChannel::start() const
 {
-    return m_start;
+    return uchar(m_start);
 }
 
 void FadeChannel::setTarget(uchar value)
@@ -185,7 +242,7 @@ void FadeChannel::setTarget(uchar value)
 
 uchar FadeChannel::target() const
 {
-    return m_target;
+    return uchar(m_target);
 }
 
 void FadeChannel::setCurrent(uchar value)
@@ -195,7 +252,7 @@ void FadeChannel::setCurrent(uchar value)
 
 uchar FadeChannel::current() const
 {
-    return m_current;
+    return uchar(m_current);
 }
 
 uchar FadeChannel::current(qreal intensity) const
@@ -213,17 +270,9 @@ bool FadeChannel::isReady() const
     return m_ready;
 }
 
-bool FadeChannel::canFade(const Doc* doc) const
+bool FadeChannel::canFade() const
 {
-    bool cFade = true;
-
-    if (fixture() != Fixture::invalidId())
-    {
-        Fixture* fxi = doc->fixture(fixture());
-        if (fxi != NULL)
-            cFade = fxi->channelCanFade(channel());
-    }
-    return cFade;
+    return (m_flags & CanFade) ? true : false;
 }
 
 void FadeChannel::setFadeTime(uint ms)
@@ -260,6 +309,7 @@ uchar FadeChannel::calculateCurrent(uint fadeTime, uint elapsedTime)
         // Return the target value if all time has been consumed
         // or if the channel has been marked ready.
         m_current = m_target;
+        setReady(true);
     }
     else if (elapsedTime == 0)
     {
@@ -272,13 +322,6 @@ uchar FadeChannel::calculateCurrent(uint fadeTime, uint elapsedTime)
         m_current += m_start;
     }
 
-    return current();
+    return uchar(m_current);
 }
 
-uint qHash(const FadeChannel& key)
-{
-    uint hash = key.fixture() << 16;
-    hash = hash | (key.channel() & 0xFFFF);
-    hash = hash & (~0U);
-    return hash;
-}

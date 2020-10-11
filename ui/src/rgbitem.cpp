@@ -25,19 +25,15 @@
 #include "qlcmacros.h"
 #include "rgbitem.h"
 
-RGBItem::RGBItem(QGraphicsItem* parent)
-    : QGraphicsEllipseItem(parent)
-    , m_elapsed(0)
-{
-}
-
-RGBItem::~RGBItem()
+RGBItem::RGBItem(QAbstractGraphicsShapeItem* graphicsItem)
+    : m_elapsed(0)
+    , m_graphicsItem(graphicsItem)
 {
 }
 
 void RGBItem::setColor(QRgb rgb)
 {
-    m_oldColor = brush().color();
+    m_oldColor = m_graphicsItem->brush().color();
     m_color = QColor(rgb);
     m_elapsed = 0;
 }
@@ -47,35 +43,42 @@ QRgb RGBItem::color() const
     return m_color.rgb();
 }
 
-void RGBItem::draw(uint ms)
+void RGBItem::draw(uint elapsedMs, uint targetMs)
 {
-    if (ms == 0)
+    m_elapsed += elapsedMs;
+
+    if (targetMs == 0)
     {
-        setBrush(m_color);
+        m_graphicsItem->setBrush(m_color);
     }
-    else if (m_elapsed <= ms)
+    else if (m_elapsed <= targetMs)
     {
         int red, green, blue;
         if (m_oldColor.red() < m_color.red())
-            red = SCALE(qreal(m_elapsed), qreal(0), qreal(ms), qreal(m_oldColor.red()), qreal(m_color.red()));
+            red = SCALE(qreal(m_elapsed), qreal(0), qreal(targetMs), qreal(m_oldColor.red()), qreal(m_color.red()));
         else
-            red = SCALE(qreal(m_elapsed), qreal(ms), qreal(0), qreal(m_color.red()), qreal(m_oldColor.red()));
+            red = SCALE(qreal(m_elapsed), qreal(targetMs), qreal(0), qreal(m_color.red()), qreal(m_oldColor.red()));
         red = CLAMP(red, 0, 255);
 
         if (m_oldColor.green() < m_color.green())
-            green = SCALE(qreal(m_elapsed), qreal(0), qreal(ms), qreal(m_oldColor.green()), qreal(m_color.green()));
+            green = SCALE(qreal(m_elapsed), qreal(0), qreal(targetMs), qreal(m_oldColor.green()), qreal(m_color.green()));
         else
-            green = SCALE(qreal(m_elapsed), qreal(ms), qreal(0), qreal(m_color.green()), qreal(m_oldColor.green()));
+            green = SCALE(qreal(m_elapsed), qreal(targetMs), qreal(0), qreal(m_color.green()), qreal(m_oldColor.green()));
         green = CLAMP(green, 0, 255);
 
         if (m_oldColor.blue() < m_color.blue())
-            blue = SCALE(qreal(m_elapsed), qreal(0), qreal(ms), qreal(m_oldColor.blue()), qreal(m_color.blue()));
+            blue = SCALE(qreal(m_elapsed), qreal(0), qreal(targetMs), qreal(m_oldColor.blue()), qreal(m_color.blue()));
         else
-            blue = SCALE(qreal(m_elapsed), qreal(ms), qreal(0), qreal(m_color.blue()), qreal(m_oldColor.blue()));
+            blue = SCALE(qreal(m_elapsed), qreal(targetMs), qreal(0), qreal(m_color.blue()), qreal(m_oldColor.blue()));
         blue = CLAMP(blue, 0, 255);
 
-        setBrush(QColor(red, green, blue));
+        m_graphicsItem->setBrush(QColor(red, green, blue));
     }
+    else
+        m_graphicsItem->setBrush(m_color);
+}
 
-    m_elapsed += MasterTimer::tick();
+QAbstractGraphicsShapeItem* RGBItem::graphicsItem() const
+{
+    return m_graphicsItem.data();
 }

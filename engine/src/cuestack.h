@@ -1,8 +1,9 @@
 /*
-  Q Light Controller
+  Q Light Controller Plus
   cuestack.h
 
   Copyright (c) Heikki Junnila
+                Massimo Callegari
 
   Licensed under the Apache License, Version 2.0 (the "License");
   you may not use this file except in compliance with the License.
@@ -23,14 +24,15 @@
 #include <QObject>
 #include <QMutex>
 #include <QList>
+#include <QMap>
 
 #include "dmxsource.h"
 #include "cue.h"
 
+class QXmlStreamReader;
+class QXmlStreamWriter;
 class UniverseArray;
 class GenericFader;
-class QDomDocument;
-class QDomElement;
 class MasterTimer;
 class FadeChannel;
 class Doc;
@@ -192,9 +194,9 @@ private:
      * Load & Save
      ************************************************************************/
 public:
-    static uint loadXMLID(const QDomElement& root);
-    bool loadXML(const QDomElement& root);
-    bool saveXML(QDomDocument* doc, QDomElement* root, uint id) const;
+    static uint loadXMLID(QXmlStreamReader &root);
+    bool loadXML(QXmlStreamReader &root);
+    bool saveXML(QXmlStreamWriter *doc, uint id) const;
 
     /************************************************************************
      * Running
@@ -243,16 +245,18 @@ public:
 
     void preRun();
     void write(QList<Universe *> ua);
-    void postRun(MasterTimer* timer);
+    void postRun(MasterTimer *timer, QList<Universe *> ua);
 
 private:
     int next();
     int previous();
+    FadeChannel *getFader(QList<Universe *> universes, quint32 universeID, quint32 fixtureID, quint32 channel);
+    void updateFaderValues(FadeChannel *fc, uchar value, uint fadeTime);
     void switchCue(int from, int to, const QList<Universe *> ua);
-    void insertStartValue(FadeChannel& fc, const QList<Universe*> ua);
 
 private:
-    GenericFader* m_fader;
+    /** Map used to lookup a GenericFader instance for a Universe ID */
+    QMap<quint32, QSharedPointer<GenericFader> > m_fadersMap;
     uint m_elapsed;
     bool m_previous;
     bool m_next;

@@ -1,8 +1,9 @@
 /*
-  Q Light Controller
+  Q Light Controller Plus
   script.h
 
   Copyright (C) Heikki Junnila
+                Massimo Callegari
 
   Licensed under the Apache License, Version 2.0 (the "License");
   you may not use this file except in compliance with the License.
@@ -30,7 +31,7 @@ class MasterTimer;
 class Universe;
 class Doc;
 
-/** @addtogroup engine Engine
+/** @addtogroup engine_functions Functions
  * @{
  */
 
@@ -44,14 +45,19 @@ class Script : public Function
 public:
     static const QString startFunctionCmd;
     static const QString stopFunctionCmd;
+    static const QString blackoutCmd;
 
     static const QString waitCmd;
     static const QString waitKeyCmd;
 
     static const QString setFixtureCmd;
+    static const QString systemCmd;
 
     static const QString labelCmd;
     static const QString jumpCmd;
+
+    static const QString blackoutOn;
+    static const QString blackoutOff;
 
     /************************************************************************
      * Initialization
@@ -60,14 +66,20 @@ public:
     Script(Doc* doc);
     virtual ~Script();
 
+    /** @reimp */
+    QIcon getIcon() const;
+
+    /** @reimp */
+    quint32 totalDuration();
+
     /************************************************************************
      * Copying
      ************************************************************************/
 public:
-    /** @reimpl */
+    /** @reimp */
     Function* createCopy(Doc* doc, bool addToDoc = true);
 
-    /** @reimpl */
+    /** @reimp */
     bool copyFrom(const Function* function);
 
     /************************************************************************
@@ -77,8 +89,24 @@ public:
     /** Set the raw script data */
     bool setData(const QString& str);
 
+    /** Append a line of script to the raw data */
+    bool appendData(const QString& str);
+
     /** Get the raw script data */
     QString data() const;
+
+    /** Get the script data lines as a list of  strings */
+    QStringList dataLines() const;
+
+    /** Convenience method to retrieve Functions used by this Script.
+     *  The returned list is formatted as: Function ID / line number */
+    QList<quint32> functionList() const;
+
+    /** Convenience method to retrieve Fixtures used by this Script.
+     *  The returned list is formatted as: Fixture ID / line number */
+    QList<quint32> fixtureList() const;
+
+    QList<int> syntaxErrorsLines();
 
 private:
     QString m_data;
@@ -87,24 +115,24 @@ private:
      * Load & Save
      ************************************************************************/
 public:
-    /** @reimpl */
-    bool loadXML(const QDomElement& root);
+    /** @reimp */
+    bool loadXML(QXmlStreamReader &root);
 
-    /** @reimpl */
-    bool saveXML(QDomDocument* doc, QDomElement* root);
+    /** @reimp */
+    bool saveXML(QXmlStreamWriter *doc);
 
     /************************************************************************
      * Running
      ************************************************************************/
 public:
-    /** @reimpl */
-    void preRun(MasterTimer* timer);
+    /** @reimp */
+    void preRun(MasterTimer *timer);
 
-    /** @reimpl */
-    void write(MasterTimer* timer, QList<Universe*> universes);
+    /** @reimp */
+    void write(MasterTimer *timer, QList<Universe*> universes);
 
-    /** @reimpl */
-    void postRun(MasterTimer* timer, QList<Universe*> universes);
+    /** @reimp */
+    void postRun(MasterTimer *timer, QList<Universe*> universes);
 
 private:
     /**
@@ -116,7 +144,7 @@ private:
      * @return true to continue loop immediately, false to return control back
      *         to MasterTimer.
      */
-    bool executeCommand(int index, MasterTimer* timer, QList<Universe*> universes);
+    bool executeCommand(int index, MasterTimer *timer, QList<Universe*> universes);
 
     /**
      * Check, if the script should still wait or if it should proceed to executing
@@ -127,9 +155,17 @@ private:
     bool waiting();
 
     /**
+     * Parse a string in the form "random(min,max)" and returns
+     * a randomized value between min and max
+     *
+     * @return the randomized value requested
+     */
+    static quint32 getValueFromString(QString str, bool *ok);
+
+    /**
      * Handle "startfunction" command.
      *
-     * @param command The first keyword:value pair
+     * @param tokens A list of keyword:value pairs
      * @param timer The MasterTimer that should run the function
      * @return An empty string if successful. Otherwise an error string.
      */
@@ -138,15 +174,23 @@ private:
     /**
      * Handle "stopfunction" command.
      *
-     * @param command The first keyword:value pair
+     * @param tokens A list of keyword:value pairs
      * @return An empty string if successful. Otherwise an error string.
      */
     QString handleStopFunction(const QList<QStringList>& tokens);
 
     /**
+     * Handle "blackout" command.
+     *
+     * @param tokens A list of keyword:value pairs
+     * @return An empty string if successful. Otherwise an error string.
+     */
+    QString handleBlackout(const QList<QStringList>& tokens);
+
+    /**
      * Handle "wait" command.
      *
-     * @param command The first keyword:value pair
+     * @param tokens A list of keyword:value pairs
      * @return An empty string if successful. Otherwise an error string.
      */
     QString handleWait(const QList<QStringList>& tokens);
@@ -154,7 +198,7 @@ private:
     /**
      * Handle "waitkey" command.
      *
-     * @param command The first keyword:value pair
+     * @param tokens A list of keyword:value pairs
      * @return An empty string if successful. Otherwise an error string.
      */
     QString handleWaitKey(const QList<QStringList>& tokens);
@@ -162,17 +206,24 @@ private:
     /**
      * Handle "setfixture" command.
      *
-     * @param command The first keyword:value pair
-     * @param tokens All keyword:value pairs (including the first one)
+     * @param tokens A list of keyword:value pairs
      * @param universes The universe array to write DMX data
      * @return An empty string if successful. Otherwise an error string.
      */
     QString handleSetFixture(const QList<QStringList>& tokens, QList<Universe*> universes);
 
     /**
+     * Handle "systemcommand" command.
+     *
+     * @param tokens A list of keyword:value pairs
+     * @return An empty string if successful. Otherwise an error string.
+     */
+    QString handleSystemCommand(const QList<QStringList>& tokens);
+
+    /**
      * Handle "label" command.
      *
-     * @param command The first keyword:value pair
+     * @param tokens A list of keyword:value pairs
      * @return An empty string if successful. Otherwise an error string.
      */
     QString handleLabel(const QList<QStringList>& tokens);
@@ -180,7 +231,7 @@ private:
     /**
      * Handle "jump" command.
      *
-     * @param command The first keyword:value pair
+     * @param tokens A list of keyword:value pairs
      * @return An empty string if successful. Otherwise an error string.
      */
     QString handleJump(const QList<QStringList>& tokens);
@@ -195,15 +246,13 @@ private:
      */
     static QList <QStringList> tokenizeLine(const QString& line, bool* ok = NULL);
 
-    /** Get the script's GenericFader (and create it if necessary) */
-    GenericFader* fader();
-
 private:
     int m_currentCommand;        //! Current command line being handled
     quint32 m_waitCount;         //! Timer ticks to wait before executing the next line
-    QList <QList<QStringList> > m_lines; //! Raw data parsed into lines of tokens
+    QList < QList<QStringList> > m_lines; //! Raw data parsed into lines of tokens
     QMap <QString,int> m_labels; //! Labels and their line numbers
     QList <Function*> m_startedFunctions; //! Functions started by this script
+    QList <int> m_syntaxErrorLines;
 
     GenericFader* m_fader;
 };

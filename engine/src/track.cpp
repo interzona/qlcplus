@@ -1,5 +1,5 @@
 /*
-  Q Light Controller
+  Q Light Controller Plus
   track.cpp
 
   Copyright (c) Massimo Callegari
@@ -17,10 +17,11 @@
   limitations under the License.
 */
 
-#include <QDomDocument>
-#include <QDomElement>
+#include <QXmlStreamReader>
+#include <QXmlStreamWriter>
 #include <QDebug>
 
+#include "sequence.h"
 #include "track.h"
 #include "scene.h"
 #include "doc.h"
@@ -34,6 +35,7 @@
 
 Track::Track(quint32 sceneID)
     : m_id(Track::invalidId())
+    , m_showId(Function::invalidId())
     , m_sceneID(sceneID)
     , m_isMute(false)
 
@@ -65,6 +67,11 @@ quint32 Track::invalidId()
     return UINT_MAX;
 }
 
+void Track::setShowId(quint32 id)
+{
+    m_showId = id;
+}
+
 /****************************************************************************
  * Name
  ****************************************************************************/
@@ -83,6 +90,11 @@ QString Track::name() const
 /*********************************************************************
  * Scene
  *********************************************************************/
+void Track::setSceneID(quint32 id)
+{
+    m_sceneID = id;
+}
+
 quint32 Track::getSceneID()
 {
     return m_sceneID;
@@ -105,28 +117,38 @@ bool Track::isMute()
  * Sequences
  *********************************************************************/
 
-bool Track::addFunctionID(quint32 id)
+ShowFunction* Track::createShowFunction(quint32 id)
 {
-    if (m_functions.count() > 0 && m_functions.contains(id))
+    ShowFunction *func = new ShowFunction();
+    func->setFunctionID(id);
+    m_functions.append(func);
+
+    return func;
+}
+
+bool Track::addShowFunction(ShowFunction *func)
+{
+    if (func == NULL || func->functionID() == Function::invalidId())
         return false;
-    m_functions.append(id);
+
+    m_functions.append(func);
 
     return true;
 }
 
-bool Track::removeFunctionID(quint32 id)
+bool Track::removeShowFunction(ShowFunction *function, bool performDelete)
 {
-    if (m_functions.count() > 0 && m_functions.contains(id) == false)
+    if (m_functions.contains(function) == false)
         return false;
-    int idx = m_functions.indexOf(id);
-    if (idx < 0)
-        return false;
-    m_functions.takeAt(idx);
+
+    ShowFunction *func = m_functions.takeAt(m_functions.indexOf(function));
+    if (performDelete)
+        delete func;
 
     return true;
 }
 
-QList <quint32> Track::functionsID()
+QList <ShowFunction *> Track::showFunctions() const
 {
     return m_functions;
 }
@@ -134,101 +156,186 @@ QList <quint32> Track::functionsID()
 /*****************************************************************************
  * Load & Save
  *****************************************************************************/
-bool Track::saveXML(QDomDocument* doc, QDomElement* wksp_root)
+bool Track::saveXML(QXmlStreamWriter *doc)
 {
-    QDomElement tag;
-    QDomElement ids;
-    QDomText text;
-    QString str;
-
     Q_ASSERT(doc != NULL);
 
     /* Track entry */
-    tag = doc->createElement(KXMLQLCTrack);
-    tag.setAttribute(KXMLQLCTrackID, this->id());
-    tag.setAttribute(KXMLQLCTrackName, this->name());
+    doc->writeStartElement(KXMLQLCTrack);
+    doc->writeAttribute(KXMLQLCTrackID, QString::number(this->id()));
+    doc->writeAttribute(KXMLQLCTrackName, this->name());
     if (m_sceneID != Scene::invalidId())
-        tag.setAttribute(KXMLQLCTrackSceneID, m_sceneID);
-    tag.setAttribute(KXMLQLCTrackIsMute, m_isMute);
+        doc->writeAttribute(KXMLQLCTrackSceneID, QString::number(m_sceneID));
+    doc->writeAttribute(KXMLQLCTrackIsMute, QString::number(m_isMute));
 
-    /* Save the list of Chasers IDs if present */
-    if (m_functions.count() > 0)
+    /* Save the list of Functions if any is present */
+    if (m_functions.isEmpty() == false)
     {
-        ids = doc->createElement(KXMLQLCTrackFunctions);
-        foreach(quint32 id, m_functions)
-        {
-            if (str.isEmpty() == false)
-                str.append(QString(","));
-            str.append(QString("%1").arg(id));
-        }
-        text = doc->createTextNode(str);
-        ids.appendChild(text);
-        tag.appendChild(ids);
+        foreach(ShowFunction *func, showFunctions())
+            func->saveXML(doc);
     }
 
-    wksp_root->appendChild(tag);
+    doc->writeEndElement();
 
     return true;
 }
 
-bool Track::loadXML(const QDomElement& root)
+bool Track::loadXML(QXmlStreamReader &root)
 {
-    if (root.tagName() != KXMLQLCTrack)
+    if (root.name() != KXMLQLCTrack)
     {
         qWarning() << Q_FUNC_INFO << "Track node not found";
         return false;
     }
 
     bool ok = false;
-    quint32 id = root.attribute(KXMLQLCTrackID).toUInt(&ok);
+    QXmlStreamAttributes attrs = root.attributes();
+    quint32 id = attrs.value(KXMLQLCTrackID).toString().toUInt(&ok);
     if (ok == false)
     {
-        qWarning() << "Invalid Track ID:" << root.attribute(KXMLQLCTrackID);
+        qWarning() << "Invalid Track ID:" << attrs.value(KXMLQLCTrackID).toString();
         return false;
     }
     // Assign the ID to myself
     m_id = id;
 
-    if (root.hasAttribute(KXMLQLCTrackName) == true)
-        m_name = root.attribute(KXMLQLCTrackName);
+    if (attrs.hasAttribute(KXMLQLCTrackName) == true)
+        m_name = attrs.value(KXMLQLCTrackName).toString();
 
-    ok = false;
-    id = root.attribute(KXMLQLCTrackSceneID).toUInt(&ok);
-    if (ok == false)
+    if (attrs.hasAttribute(KXMLQLCTrackSceneID))
     {
-        qWarning() << "Invalid Scene ID:" << root.attribute(KXMLQLCTrackSceneID);
-        return false;
+        ok = false;
+        id = attrs.value(KXMLQLCTrackSceneID).toString().toUInt(&ok);
+        if (ok == false)
+        {
+            qWarning() << "Invalid Scene ID:" << attrs.value(KXMLQLCTrackSceneID).toString();
+            return false;
+        }
+        m_sceneID = id;
     }
-    m_sceneID = id;
 
     ok = false;
-    bool mute = root.attribute(KXMLQLCTrackIsMute).toInt(&ok);
+    bool mute = attrs.value(KXMLQLCTrackIsMute).toString().toInt(&ok);
     if (ok == false)
     {
-        qWarning() << "Invalid Mute flag:" << root.attribute(KXMLQLCTrackIsMute);
+        qWarning() << "Invalid Mute flag:" << root.attributes().value(KXMLQLCTrackIsMute).toString();
         return false;
     }
     m_isMute = mute;
 
-    /* look for chaser IDs */
-    if (root.hasChildNodes())
+    /* look for show functions */
+    while (root.readNextStartElement())
     {
-        QDomNode node = root.firstChild();
-        if (node.isNull() == false)
+        if (root.name() == KXMLShowFunction)
         {
-            QDomElement tag = node.toElement();
-            if (tag.tagName() == KXMLQLCTrackFunctions)
+            ShowFunction *newFunc = new ShowFunction();
+            newFunc->loadXML(root);
+            if (addShowFunction(newFunc) == false)
+                delete newFunc;
+        }
+        /* LEGACY code: to be removed */
+        else if (root.name() == KXMLQLCTrackFunctions)
+        {
+            QString strvals = root.readElementText();
+            if (strvals.isEmpty() == false)
             {
-                QString strvals = tag.text();
-                if (strvals.isEmpty() == false)
-                {
-                    QStringList varray = strvals.split(",");
-                    for (int i = 0; i < varray.count(); i++)
-                        m_functions.append(QString(varray.at(i)).toUInt());
-                }
+                QStringList varray = strvals.split(",");
+                for (int i = 0; i < varray.count(); i++)
+                    createShowFunction(QString(varray.at(i)).toUInt());
             }
+        }
+        else
+        {
+            qWarning() << Q_FUNC_INFO << "Unknown Track tag:" << root.name();
+            root.skipCurrentElement();
         }
     }
 
     return true;
+}
+
+bool Track::postLoad(Doc* doc)
+{
+    bool modified = false;
+    QMutableListIterator<ShowFunction*> it(m_functions);
+    while (it.hasNext())
+    {
+        ShowFunction* showFunction = it.next();
+
+        Function* function = doc->function(showFunction->functionID());
+        if (function == NULL
+                || (m_showId != Function::invalidId()
+                    && function->contains(m_showId)))
+        {
+            it.remove();
+            delete showFunction;
+            modified = true;
+            continue;
+        }
+
+        //if (showFunction->duration() == 0)
+        //    showFunction->setDuration(function->totalDuration());
+        if (showFunction->color().isValid() == false)
+            showFunction->setColor(ShowFunction::defaultColor(function->type()));
+
+        if (function->type() == Function::SequenceType)
+        {
+            Sequence* sequence = qobject_cast<Sequence*>(function);
+            if (sequence == NULL || getSceneID() == sequence->boundSceneID())
+                continue;
+#ifndef QMLUI
+            if (getSceneID() == Function::invalidId())
+            {
+                // No scene ID, use the one from this sequence
+                setSceneID(sequence->boundSceneID());
+            }
+            else
+            {
+                // Conflicting scene IDs, we have to remove this sequence
+                it.remove();
+                delete showFunction;
+            }
+#endif
+            modified = true;
+        }
+    }
+    return modified;
+}
+
+bool Track::contains(Doc* doc, quint32 functionId)
+{
+    if (m_sceneID == functionId)
+        return true;
+
+    QListIterator<ShowFunction*> it(m_functions);
+    while (it.hasNext())
+    {
+        ShowFunction* showFunction = it.next();
+
+        Function* function = doc->function(showFunction->functionID());
+        // contains() can be called during init, function may be NULL
+        if (function == NULL)
+            continue;
+
+        if (function->id() == functionId)
+            return true;
+        if (function->contains(functionId))
+            return true;
+    }
+
+    return false;
+}
+
+QList<quint32> Track::components()
+{
+    QList<quint32> ids;
+
+    QListIterator<ShowFunction*> it(m_functions);
+    while (it.hasNext())
+    {
+        ShowFunction* showFunction = it.next();
+        ids.append(showFunction->functionID());
+    }
+
+    return ids;
 }

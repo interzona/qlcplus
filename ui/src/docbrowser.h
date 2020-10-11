@@ -21,8 +21,9 @@
 #define DOCBROWSER_H
 
 #include <QTextBrowser>
+#include <QPushButton>
 #include <QMainWindow>
-#include <QTime>
+#include <QElapsedTimer>
 
 class QToolBar;
 class QAction;
@@ -46,7 +47,7 @@ protected:
     bool event(QEvent* ev);
 
 private:
-    QTime m_hysteresis;
+    QElapsedTimer m_hysteresis;
 };
 
 /****************************************************************************
@@ -69,6 +70,7 @@ private slots:
     void slotBackwardAvailable(bool);
     void slotForwardAvailable(bool);
     void slotAboutQt();
+    void slotCloseWindow();
 
 private:
     static DocBrowser* s_instance;
@@ -79,6 +81,7 @@ private:
     QAction* m_forwardAction;
     QAction* m_homeAction;
     QAction* m_aboutQtAction;
+    QAction* m_closeAction;
 };
 
 /** @} */

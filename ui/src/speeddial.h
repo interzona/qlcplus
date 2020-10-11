@@ -23,13 +23,14 @@
 #include <QGroupBox>
 #include <QSpinBox>
 
+class QElapsedTimer;
 class QPushButton;
 class QToolButton;
 class QFocusEvent;
 class QCheckBox;
+class QLabel;
 class QTimer;
 class QDial;
-class QTime;
 
 /** @addtogroup ui UI
  * @{
@@ -67,6 +68,19 @@ class SpeedDial : public QGroupBox
     Q_DISABLE_COPY(SpeedDial)
 
 public:
+    enum Visibility
+    {
+        None         = 0,
+        PlusMinus    = 1 << 0,
+        Dial         = 1 << 1,
+        Tap          = 1 << 2,
+        Hours        = 1 << 3,
+        Minutes      = 1 << 4,
+        Seconds      = 1 << 5,
+        Milliseconds = 1 << 6,
+        Infinite     = 1 << 7,
+    };
+
     SpeedDial(QWidget* parent);
     ~SpeedDial();
 
@@ -84,14 +98,22 @@ public:
     /** Produce a tap programmatically */
     void tap();
 
+    void toggleInfinite();
+
+    void stopTimers(bool stopTime = true, bool stopTapTimer = true);
+
+    bool isTapTick();
+
 signals:
     void valueChanged(int ms);
     void tapped();
+    void tapTimeout();
 
     /*************************************************************************
      * Private
      *************************************************************************/
 private:
+    void updateTapTimer();
     void setSpinValues(int ms);
     int spinValues() const;
 
@@ -109,6 +131,7 @@ private slots:
     void slotInfiniteChecked(bool state);
     void slotSpinFocusGained();
     void slotTapClicked();
+    void slotTapTimeout();
 
 private:
     QTimer* m_timer;
@@ -127,7 +150,27 @@ private:
     bool m_preventSignals;
     int m_value;
 
-    QTime* m_tapTime;
+    bool m_tapTick;
+    QElapsedTimer* m_tapTime;
+    QTimer* m_tapTickTimer;
+    QTimer* m_tapTickElapseTimer;
+
+    /*************************************************************************
+     * Elements visibility
+     *************************************************************************/
+public:
+    /** Return the widget's elements default visibility bitmask */
+    static quint16 defaultVisibilityMask();
+
+    /** Return the widget's elements visibility bitmask */
+    quint16 visibilityMask();
+
+    /** Set the visibility of the widget's elements
+      * according to the provided bitmask */
+    void setVisibilityMask(quint16 mask);
+
+private:
+    quint16 m_visibilityMask;
 };
 
 /** @} */

@@ -1,8 +1,9 @@
 /*
-  Q Light Controller
+  Q Light Controller Plus
   qlcphysical.h
 
   Copyright (C) Heikki Junnila
+                Massimo Callegari
 
   Licensed under the Apache License, Version 2.0 (the "License");
   you may not use this file except in compliance with the License.
@@ -21,9 +22,10 @@
 #define QLCPHYSICAL_H
 
 #include <QString>
+#include <QSize>
 
-class QDomElement;
-class QDomDocument;
+class QXmlStreamReader;
+class QXmlStreamWriter;
 
 /** @addtogroup engine Engine
  * @{
@@ -36,16 +38,18 @@ class QDomDocument;
 #define KXMLQLCPhysicalBulbLumens "Lumens"
 #define KXMLQLCPhysicalBulbColourTemperature "ColourTemperature"
 
+#define KXMLQLCPhysicalLens "Lens"
+#define KXMLQLCPhysicalLensName "Name"
+#define KXMLQLCPhysicalLensDegreesMin "DegreesMin"
+#define KXMLQLCPhysicalLensDegreesMax "DegreesMax"
+
 #define KXMLQLCPhysicalDimensions "Dimensions"
 #define KXMLQLCPhysicalDimensionsWeight "Weight"
 #define KXMLQLCPhysicalDimensionsWidth "Width"
 #define KXMLQLCPhysicalDimensionsHeight "Height"
 #define KXMLQLCPhysicalDimensionsDepth "Depth"
 
-#define KXMLQLCPhysicalLens "Lens"
-#define KXMLQLCPhysicalLensName "Name"
-#define KXMLQLCPhysicalLensDegreesMin "DegreesMin"
-#define KXMLQLCPhysicalLensDegreesMax "DegreesMax"
+#define KXMLQLCPhysicalLayout "Layout"
 
 #define KXMLQLCPhysicalFocus "Focus"
 #define KXMLQLCPhysicalFocusType "Type"
@@ -69,9 +73,13 @@ class QLCPhysical
      ************************************************************************/
 public:
     QLCPhysical();
+    QLCPhysical(const QLCPhysical &other);
+
     virtual ~QLCPhysical();
 
     QLCPhysical& operator=(const QLCPhysical& physical);
+
+    bool isEmpty() const;
 
     /************************************************************************
      * Properties
@@ -101,11 +109,11 @@ public:
     void setLensName(const QString& name);
     QString lensName() const;
 
-    void setLensDegreesMin(qreal degrees);
-    qreal lensDegreesMin() const;
+    void setLensDegreesMin(double degrees);
+    double lensDegreesMin() const;
 
-    void setLensDegreesMax(qreal degrees);
-    qreal lensDegreesMax() const;
+    void setLensDegreesMax(double degrees);
+    double lensDegreesMax() const;
 
     void setFocusType(const QString& type);
     QString focusType() const;
@@ -115,6 +123,9 @@ public:
 
     void setFocusTiltMax(int tilt);
     int focusTiltMax() const;
+
+    void setLayoutSize(QSize size);
+    QSize layoutSize() const;
 
     void setPowerConsumption(int watt);
     int powerConsumption() const;
@@ -133,12 +144,13 @@ protected:
     int m_depth;
 
     QString m_lensName;
-    qreal m_lensDegreesMin;
-    qreal m_lensDegreesMax;
+    double m_lensDegreesMin;
+    double m_lensDegreesMax;
 
     QString m_focusType;
     int m_focusPanMax;
     int m_focusTiltMax;
+    QSize m_layout;
 
     int m_powerConsumption;
     QString m_dmxConnector;
@@ -147,11 +159,11 @@ protected:
      * Load & Save
      ************************************************************************/
 public:
-    /** Load physical values from the given QDomElement */
-    bool loadXML(const QDomElement& root);
+    /** Load physical values from the given QXmlStreamReader */
+    bool loadXML(QXmlStreamReader &doc);
 
     /** Save physical values to the given XML tag in the given document */
-    bool saveXML(QDomDocument* doc, QDomElement* root);
+    bool saveXML(QXmlStreamWriter *doc);
 };
 
 /** @} */

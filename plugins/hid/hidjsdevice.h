@@ -1,8 +1,9 @@
 /*
-  Q Light Controller
+  Q Light Controller Plus
   hidjsdevice.h
 
   Copyright (c) Heikki Junnila
+                Massimo Callegari
 
   Licensed under the Apache License, Version 2.0 (the "License");
   you may not use this file except in compliance with the License.
@@ -24,14 +25,11 @@
 #include <QFile>
 #include <QHash>
 
-#include <sys/ioctl.h>
-#include <linux/input.h>
-#include <linux/types.h>
-
+#include "qlcmacros.h"
 #include "hiddevice.h"
+#include "hidapi.h"
 
-class HIDEventDevice;
-class HID;
+class HIDPlugin;
 
 /*****************************************************************************
  * HIDEventDevice
@@ -42,32 +40,38 @@ class HIDJsDevice : public HIDDevice
     Q_OBJECT
 
 public:
-    HIDJsDevice(HID* parent, quint32 line, const QString& path);
+    HIDJsDevice(HIDPlugin* parent, quint32 line, struct hid_device_info *info);
     virtual ~HIDJsDevice();
 
 protected:
-    /** Initialize the device, find out its capabilities etc. */
-    void init();
+    /** Initialize the device, find out its capabilities etc.
+      * This is a pure virtual method because every subclass has
+      * its own platform specific initialization */
+    virtual void init() = 0;
+
+    /** @reimp */
+    bool hasInput() { return true; }
 
 protected:
-    unsigned char m_axes;
-    unsigned char m_buttons;
+    struct hid_device_info *m_dev_info;
+    unsigned char m_axesNumber;
+    unsigned char m_buttonsNumber;
 
     /*********************************************************************
      * File operations
      *********************************************************************/
 public:
     /** @reimp */
-    bool open();
+    virtual bool openInput();
 
     /** @reimp */
-    void close();
+    void closeInput();
 
     /** @reimp */
     QString path() const;
 
     /** @reimp */
-    bool readEvent();
+    virtual bool readEvent() ;
 
     /*********************************************************************
      * Device info
@@ -82,6 +86,10 @@ public:
 public:
     /** @reimp */
     void feedBack(quint32 channel, uchar value);
+
+private:
+    /** @reimp */
+    virtual void run();
 };
 
 #endif

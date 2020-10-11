@@ -45,6 +45,9 @@ public:
         Yellow,
         Amber,
         White,
+        Lime,
+        Indigo,
+        UV,
         RGB,
         CMY,
         Preset
@@ -86,12 +89,6 @@ protected:
      * from either black or white (begin) to a primary color (end)
      */
     void setupGradient(QColor begin, QColor end);
-
-    /**
-     * Helper function to draw a vertical gradient from
-     * black to white to a given X position
-     */
-    void fillWithGradient(int r, int g, int b, QPainter *painter, int x);
 
     /**
      * Prepare the widget to display a full color picker
@@ -139,11 +136,13 @@ protected:
     int m_height;
     int m_cols;
     int m_rows;
+    int m_cellWidth;
     int m_hoverCellIdx;
     int m_cellBarXpos;
     int m_cellBarYpos;
     int m_cellBarWidth;
 
+    QString m_title;
     QList<ClickAndGoWidget::PresetResource> m_resources;
 
     /** Used to group all the primary colors */
@@ -169,9 +168,9 @@ signals:
     void levelChanged(uchar level);
     void colorChanged(QRgb color);
     void levelAndPresetChanged(uchar level, QImage img);
-    
+
 public slots:
-    
+
 };
 
 /** @} */

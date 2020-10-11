@@ -4,7 +4,7 @@ TEMPLATE = app
 LANGUAGE = C++
 TARGET   = doc_test
 
-QT      += testlib xml script
+QT      += testlib
 CONFIG  -= app_bundle
 
 DEPENDPATH   += ../../src
@@ -14,4 +14,5 @@ QMAKE_LIBDIR += ../../src
 LIBS         += -lqlcplusengine
 
 SOURCES += doc_test.cpp
-HEADERS += doc_test.h
+HEADERS += doc_test.h ../common/resource_paths.h
+

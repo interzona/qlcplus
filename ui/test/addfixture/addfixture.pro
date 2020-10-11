@@ -4,7 +4,7 @@ TEMPLATE = app
 LANGUAGE = C++
 TARGET   = addfixture_test
 
-QT      += testlib gui xml script
+QT      += testlib gui script
 greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
 
 INCLUDEPATH += ../../src
@@ -17,4 +17,4 @@ LIBS         += -lqlcplusui -lqlcplusengine
 
 # Test sources
 SOURCES += addfixture_test.cpp
-HEADERS += addfixture_test.h
+HEADERS += addfixture_test.h ../common/resource_paths.h

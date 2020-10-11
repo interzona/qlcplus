@@ -4,7 +4,7 @@ TEMPLATE = app
 LANGUAGE = C++
 TARGET   = efxfixture_test
 
-QT      += testlib xml script
+QT      += testlib
 CONFIG  -= app_bundle
 
 DEPENDPATH   += ../../src
@@ -15,4 +15,5 @@ QMAKE_LIBDIR += ../../src
 LIBS         += -lqlcplusengine
 
 SOURCES += efxfixture_test.cpp ../mastertimer/mastertimer_stub.cpp
-HEADERS += efxfixture_test.h ../mastertimer/mastertimer_stub.h
+HEADERS += efxfixture_test.h ../mastertimer/mastertimer_stub.h ../common/resource_paths.h
+

@@ -33,13 +33,16 @@
 
 #include "qlcconfig.h"
 #include "qlci18n.h"
+#include "qlcfile.h"
 
 #if defined(WIN32) || defined(__APPLE__)
   #include "debugbox.h"
 #endif
 
 #include "virtualconsole.h"
+#include "simpledesk.h"
 #include "webaccess.h"
+#include "webaccessauth.h"
 #include "app.h"
 #include "doc.h"
 
@@ -70,11 +73,31 @@ namespace QLCArgs
     /** If true, create and run a class to enable a web server for remote controlling */
     bool enableWebAccess = false;
 
+    /** If true, the authentication feature of the web interface will be enabled */
+    bool enableWebAuth = false;
+
+    /** Path to passwords file for web access basic authentication */
+    QString webAccessPasswordFile;
+
+    /** If true, enable a 5% of overscan when in fullscreen mode (Raspberry Only) */
+    bool enableOverscan = false;
+
+    /** If true, the application will add extra controls to close windows */
+    bool noWindowManager = false;
+
+    /** If true, hides the GUI to 1x1 pixel outside the screen */
+    bool noGui = false;
+
     /** If not null, defines the place for a close button that in virtual console */
     QRect closeButtonRect = QRect();
 
     /** Debug output level */
     QtMsgType debugLevel = QtSystemMsg;
+
+    /** Log to file flag */
+    bool logToFile = false;
+
+    QFile logFile;
 
 #if defined(WIN32) || defined(__APPLE__)
     /** The debug windows for Windows and OSX */
@@ -90,6 +113,13 @@ void qlcMessageHandler(QtMsgType type, const char* msg)
 {
     if (type >= QLCArgs::debugLevel)
     {
+        if (QLCArgs::logToFile == true && QLCArgs::logFile.isOpen())
+        {
+            QLCArgs::logFile.write(msg);
+            QLCArgs::logFile.write((char *)"\n");
+            QLCArgs::logFile.flush();
+            return;
+        }
 #if defined(WIN32) || defined(__APPLE__)
         if (QLCArgs::dbgBox != NULL)
             QLCArgs::dbgBox->addText(msg);
@@ -107,15 +137,20 @@ void qlcMessageHandler(QtMsgType type, const QMessageLogContext &context, const 
     QByteArray localMsg = msg.toLocal8Bit();
     if (type >= QLCArgs::debugLevel)
     {
-#if defined(Q_OS_WIN) || defined(Q_OS_MAC)
-        if (QLCArgs::dbgBox != NULL)
-            QLCArgs::dbgBox->addText(msg);
-#else
+        if (QLCArgs::logToFile == true && QLCArgs::logFile.isOpen())
+        {
+            QLCArgs::logFile.write(localMsg);
+            QLCArgs::logFile.write((char *)"\n");
+            QLCArgs::logFile.flush();
+        }
         fprintf(stderr, "%s\n", localMsg.constData());
         fflush(stderr);
-#endif
     }
 }
+#endif
+
+#if QT_VERSION >= QT_VERSION_CHECK(5, 15, 0)
+#define endl Qt::endl
 #endif
 
 /**
@@ -147,13 +182,18 @@ void printUsage()
     cout << "  -c or --closebutton <x,y,w,h>\tPlace a close button in virtual console (only when -k is specified)" << endl;
     cout << "  -d or --debug <level>\t\tSet debug output level (0-3, see QtMsgType)" << endl;
     cout << "  -f or --fullscreen <method>\tStart the application in fullscreen mode (method is either 'normal' or 'resize')" << endl;
+    cout << "  -g or --log\t\t\tLog debug messages to a file" << endl;
     cout << "  -h or --help\t\t\tPrint this help" << endl;
     cout << "  -k or --kiosk\t\t\tEnable kiosk mode (only virtual console in forced operate mode)" << endl;
     cout << "  -l or --locale <locale>\tForce a locale for translation" << endl;
+    cout << "  -m or --nowm\t\t\tInform the application that the system doesn't provide a window manager" << endl;
+    cout << "  -n or --nogui\t\t\tStart the application with the GUI hidden (requires --nowm)" << endl;
     cout << "  -o or --open <file>\t\tOpen the specified workspace file" << endl;
     cout << "  -p or --operate\t\tStart in operate mode" << endl;
     cout << "  -v or --version\t\tPrint version information" << endl;
     cout << "  -w or --web\t\t\tEnable remote web access" << endl;
+    cout << "  -wa or --web-auth\t\tEnable remote web access with users authentication" << endl;
+    cout << "  -a or --web-auth-file <file>\tSpecify a file where to store web access basic authentication credentials" << endl;
     cout << endl;
 }
 
@@ -191,11 +231,22 @@ bool parseArgs()
             else
                 QLCArgs::debugLevel = QtMsgType(0);
         }
+        else if (arg == "-g" || arg == "--log")
+        {
+            QLCArgs::logToFile = true;
+            QString logFilename = QDir::homePath() + QDir::separator() + "QLC+.log";
+            QLCArgs::logFile.setFileName(logFilename);
+            QLCArgs::logFile.open(QIODevice::Append);
+        }
         else if (arg == "-f" || arg == "--fullscreen")
         {
             QLCArgs::fullScreen = true;
             if (it.hasNext() == true && it.peekNext() == "resize")
                 QLCArgs::fullScreenResize = true;
+        }
+        else if (arg == "-r" || arg == "--overscan")
+        {
+            QLCArgs::enableOverscan = true;
         }
         else if (arg == "-h" || arg == "--help")
         {
@@ -216,6 +267,14 @@ bool parseArgs()
             if (it.hasNext() == true)
                 QLCArgs::workspace = it.next();
         }
+        else if (arg == "-m" || arg == "--nowm")
+        {
+            QLCArgs::noWindowManager = true;
+        }
+        else if (arg == "-n" || arg == "--nogui")
+        {
+            QLCArgs::noGui = true;
+        }
         else if (arg == "-p" || arg == "--operate")
         {
             QLCArgs::operate = true;
@@ -223,6 +282,16 @@ bool parseArgs()
         else if (arg == "-w" || arg == "--web")
         {
             QLCArgs::enableWebAccess = true;
+        }
+        else if (arg == "-wa" || arg == "--web-auth")
+        {
+            QLCArgs::enableWebAccess = true;
+            QLCArgs::enableWebAuth = true;
+        }
+        else if(arg == "-a" || arg == "--web-auth-file")
+        {
+            if(it.hasNext())
+                QLCArgs::webAccessPasswordFile = it.next();
         }
         else if (arg == "-v" || arg == "--version")
         {
@@ -280,13 +349,15 @@ int main(int argc, char** argv)
     /* Create and initialize the QLC application object */
     App app;
 
-#if defined(WIN32) || defined(__APPLE__)
-    if (QLCArgs::debugLevel < QtSystemMsg)
-    {
-        QLCArgs::dbgBox = new DebugBox(&app);
-        QLCArgs::dbgBox->show();
-    }
-#endif
+    if (QLCArgs::enableOverscan == true)
+        app.enableOverscan();
+
+    if (QLCArgs::noWindowManager == true)
+        QLCFile::setHasWindowManager(false);
+
+    if (QLCArgs::noGui == true)
+        app.disableGUI();
+
     app.startup();
     app.show();
 
@@ -306,13 +377,14 @@ int main(int argc, char** argv)
 
     if (QLCArgs::enableWebAccess == true)
     {
-        WebAccess *m_webAccess = new WebAccess(app.doc(), VirtualConsole::instance());
+        WebAccess *webAccess = new WebAccess(app.doc(), VirtualConsole::instance(), SimpleDesk::instance(),
+                                             QLCArgs::enableWebAuth, QLCArgs::webAccessPasswordFile);
 
-        QObject::connect(m_webAccess, SIGNAL(toggleDocMode()),
+        QObject::connect(webAccess, SIGNAL(toggleDocMode()),
                 &app, SLOT(slotModeToggle()));
-        QObject::connect(m_webAccess, SIGNAL(loadProject(QString)),
+        QObject::connect(webAccess, SIGNAL(loadProject(QString)),
                 &app, SLOT(slotLoadDocFromMemory(QString)));
-        QObject::connect(m_webAccess, SIGNAL(storeAutostartProject(QString)),
+        QObject::connect(webAccess, SIGNAL(storeAutostartProject(QString)),
                 &app, SLOT(slotSaveAutostart(QString)));
     }
 

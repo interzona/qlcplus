@@ -25,6 +25,7 @@
 #include "ui_dmxdumpfactory.h"
 
 class DmxDumpFactoryProperties;
+class FixtureTreeWidget;
 class VCWidget;
 class Doc;
 
@@ -36,7 +37,7 @@ class DmxDumpFactory : public QDialog, public Ui_DmxDumpFactory
 {
     Q_OBJECT
     Q_DISABLE_COPY(DmxDumpFactory)
-    
+
 public:
     DmxDumpFactory(Doc* doc, DmxDumpFactoryProperties* props, QWidget *parent = 0);
     ~DmxDumpFactory();
@@ -45,25 +46,21 @@ protected slots:
     void slotUpdateChasersTree();
     void slotUpdateButtons();
     void slotUpdateSliders();
+    void slotSelectSceneButtonClicked();
 
 protected:
-    void updateFixturesTree();
     QList<VCWidget *> getChildren(VCWidget *obj, int type);
     void updateWidgetsTree(int type);
 
 private:
     Doc* m_doc;
+    FixtureTreeWidget *m_fixturesTree;
     DmxDumpFactoryProperties* m_properties;
-
-protected:
-    int m_universesCount;
-    int m_fixturesCount;
-    int m_channelsCount;
+    quint32 m_selectedSceneID;
 
 protected slots:
     void slotDumpModeChanged(bool mode);
     void slotDumpNonZeroChanged(bool active);
-    void slotItemExpanded();
 
     /** Callback for OK button clicks */
     void accept();

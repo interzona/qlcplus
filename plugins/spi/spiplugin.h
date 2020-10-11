@@ -21,9 +21,25 @@
 #define SPIPLUGIN_H
 
 #include <QString>
+#include <QMutex>
 #include <QFile>
+#include <QHash>
 
 #include "qlcioplugin.h"
+
+typedef struct
+{
+    /** number of channels used in a universe */
+    ushort m_channels;
+    /** absolute address where data of this universe
+     *  starts in the m_serializedData array */
+    ushort m_absoluteAddress;
+    /** flag to instruct the SPI plugin to autodetect
+     *  a universe size during a writeUniverse */
+    bool m_autoDetection;
+} SPIUniverse;
+
+class SPIOutThread;
 
 class SPIPlugin : public QLCIOPlugin
 {
@@ -52,15 +68,18 @@ public:
     /** @reimp */
     QString pluginInfo();
 
+private:
+    void setAbsoluteAddress(quint32 uniID, SPIUniverse *uni);
+
     /*********************************************************************
      * Outputs
      *********************************************************************/
 public:
     /** @reimp */
-    void openOutput(quint32 output);
+    bool openOutput(quint32 output, quint32 universe);
 
     /** @reimp */
-    void closeOutput(quint32 output);
+    void closeOutput(quint32 output, quint32 universe);
 
     /** @reimp */
     QStringList outputs();
@@ -74,28 +93,18 @@ public:
 protected:
     /** File handle for /dev/spidev0.0 */
     int m_spifd;
-    int m_bitsPerWord;
-    int m_speed;
 
-    /*************************************************************************
-     * Inputs
-     *************************************************************************/
-public:
-    /** @reimp */
-    void openInput(quint32 input) { Q_UNUSED(input); }
+    int m_referenceCount;
 
-    /** @reimp */
-    void closeInput(quint32 input) { Q_UNUSED(input); }
+    /** Map of <Universe ID/number of channels> */
+    QHash<quint32, SPIUniverse*> m_uniChannelsMap;
 
-    /** @reimp */
-    QStringList inputs() { return QStringList(); }
+    /** Array holding all the universes data controlled
+     *  by the SPI plugin, ready to be sent as a serial
+     *  transfer */
+    QByteArray m_serializedData;
 
-    /** @reimp */
-    QString inputInfo(quint32 input) { Q_UNUSED(input); return QString(); }
-
-    /** @reimp */
-    void sendFeedBack(quint32 input, quint32 channel, uchar value, const QString& key)
-        { Q_UNUSED(input); Q_UNUSED(channel); Q_UNUSED(value); Q_UNUSED(key); }
+    SPIOutThread *m_outThread;
 
     /*********************************************************************
      * Configuration
@@ -106,6 +115,9 @@ public:
 
     /** @reimp */
     bool canConfigure();
+
+    /** @reimp */
+    void setParameter(quint32 universe, quint32 line, Capability type, QString name, QVariant value);
 };
 
 #endif

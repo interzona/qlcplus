@@ -1,73 +1,134 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!DOCTYPE TS>
-<TS version="2.0">
+<TS version="2.1" language="cs_CZ">
 <context>
     <name>ConfigureE131</name>
     <message>
-        <location filename="configuree131.ui" line="14"/>
+        <location filename="configuree131.ui" line="33"/>
         <source>Configure E1.31 Plugin</source>
-        <translation type="unfinished"></translation>
+        <translation>Konfigurace E1.31 pluginu</translation>
     </message>
     <message>
-        <location filename="configuree131.ui" line="24"/>
-        <source>Network Mapping</source>
-        <translation type="unfinished"></translation>
+        <location filename="configuree131.ui" line="43"/>
+        <source>Universes Configuration</source>
+        <translation>Konfigurace větví</translation>
     </message>
     <message>
-        <location filename="configuree131.ui" line="37"/>
-        <source>Network</source>
-        <translation type="unfinished"></translation>
+        <location filename="configuree131.ui" line="56"/>
+        <source>Interface</source>
+        <translation>Rozhraní</translation>
     </message>
     <message>
-        <location filename="configuree131.ui" line="42"/>
+        <location filename="configuree131.ui" line="66"/>
+        <source>Multicast</source>
+        <translation>Skupinové vysílání (multicast)</translation>
+    </message>
+    <message>
+        <location filename="configuree131.ui" line="71"/>
+        <source>IP Address</source>
+        <translation>IP adresa</translation>
+    </message>
+    <message>
+        <location filename="configuree131.ui" line="76"/>
+        <source>Port</source>
+        <translation>Port</translation>
+    </message>
+    <message>
+        <location filename="configuree131.ui" line="81"/>
+        <source>E1.31 Universe</source>
+        <translation>Větev E1.31</translation>
+    </message>
+    <message>
+        <location filename="configuree131.ui" line="86"/>
+        <source>Transmission Mode</source>
+        <translation>Spůsob přenosu</translation>
+    </message>
+    <message>
+        <location filename="configuree131.ui" line="91"/>
+        <source>Priority</source>
+        <translation>Priorita</translation>
+    </message>
+    <message>
+        <location filename="configuree131.ui" line="61"/>
         <source>Universe</source>
-        <translation type="unfinished"></translation>
+        <translation>Větev</translation>
+    </message>
+    <message>
+        <location filename="configuree131.cpp" line="86"/>
+        <source>Inputs</source>
+        <translation>Vstupy</translation>
+    </message>
+    <message>
+        <location filename="configuree131.cpp" line="92"/>
+        <source>Outputs</source>
+        <translation>Výstupy</translation>
+    </message>
+    <message>
+        <location filename="configuree131.cpp" line="176"/>
+        <source>Full</source>
+        <translation>Plný</translation>
+    </message>
+    <message>
+        <location filename="configuree131.cpp" line="177"/>
+        <source>Partial</source>
+        <translation>Částečný</translation>
+    </message>
+    <message>
+        <location filename="configuree131.cpp" line="185"/>
+        <source>%1 - min, %2 - default, %3 - max</source>
+        <translation>%1 - nejnižší, %2 - základní, %3 - nejvyšší</translation>
+    </message>
+    <message>
+        <location filename="configuree131.cpp" line="216"/>
+        <source>Invalid IP</source>
+        <translation>Neplatná IP adresa</translation>
+    </message>
+    <message>
+        <location filename="configuree131.cpp" line="216"/>
+        <source>%1 is not a valid IP.
+Please fix it before confirming.</source>
+        <translation>%1 není platná IP adresa.
+Prosím opravte zadání před potvrzením.</translation>
     </message>
 </context>
 <context>
     <name>E131Plugin</name>
     <message>
-        <location filename="e131plugin.cpp" line="75"/>
+        <location filename="e131plugin.cpp" line="93"/>
         <source>This plugin provides DMX output for devices supporting the E1.31 communication protocol.</source>
-        <translation type="unfinished"></translation>
+        <translation>Tento plugin umožňuje podporu DMX výstupu pro zařízení podporující komunikační protokol E1.31.</translation>
     </message>
     <message>
-        <location filename="e131plugin.cpp" line="90"/>
-        <location filename="e131plugin.cpp" line="182"/>
-        <source>%1: %2</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="e131plugin.cpp" line="103"/>
+        <location filename="e131plugin.cpp" line="140"/>
         <source>Output</source>
-        <translation type="unfinished"></translation>
+        <translation>Výstup</translation>
     </message>
     <message>
-        <location filename="e131plugin.cpp" line="107"/>
-        <location filename="e131plugin.cpp" line="244"/>
+        <location filename="e131plugin.cpp" line="144"/>
+        <location filename="e131plugin.cpp" line="284"/>
         <source>Status: Not open</source>
-        <translation type="unfinished"></translation>
+        <translation>Stav: Není otevřen</translation>
     </message>
     <message>
-        <location filename="e131plugin.cpp" line="110"/>
-        <location filename="e131plugin.cpp" line="247"/>
+        <location filename="e131plugin.cpp" line="147"/>
+        <location filename="e131plugin.cpp" line="287"/>
         <source>Status: Open</source>
-        <translation type="unfinished"></translation>
+        <translation>Stav: Otevřen</translation>
     </message>
     <message>
-        <location filename="e131plugin.cpp" line="112"/>
+        <location filename="e131plugin.cpp" line="149"/>
         <source>Packets sent: </source>
-        <translation type="unfinished"></translation>
+        <translation>Odeslané pakety:</translation>
     </message>
     <message>
-        <location filename="e131plugin.cpp" line="240"/>
+        <location filename="e131plugin.cpp" line="280"/>
         <source>Input</source>
-        <translation type="unfinished"></translation>
+        <translation>Vstup</translation>
     </message>
     <message>
-        <location filename="e131plugin.cpp" line="249"/>
+        <location filename="e131plugin.cpp" line="289"/>
         <source>Packets received: </source>
-        <translation type="unfinished"></translation>
+        <translation>Přijaté pakety:</translation>
     </message>
 </context>
 </TS>

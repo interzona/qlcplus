@@ -1,8 +1,9 @@
 /*
-  Q Light Controller
+  Q Light Controller Plus
   chaser.h
 
   Copyright (C) Heikki Junnila
+                Massimo Callegari
 
   Licensed under the Apache License, Version 2.0 (the "License");
   you may not use this file except in compliance with the License.
@@ -26,15 +27,17 @@
 
 #include "function.h"
 #include "scene.h"
+#include "chaserrunner.h"
 
 class QFile;
 class QString;
 class ChaserStep;
 class MasterTimer;
-class ChaserRunner;
-class QDomDocument;
+class QXmlStreamReader;
 
-/** @addtogroup engine Engine
+#define KXMLQLCChaserSpeedModes "SpeedModes"
+
+/** @addtogroup engine_functions Functions
  * @{
  */
 
@@ -59,6 +62,9 @@ public:
     Chaser(Doc* doc);
     virtual ~Chaser();
 
+    /** @reimp */
+    virtual QIcon getIcon() const;
+
 private:
     quint32 m_legacyHoldBus;
 
@@ -66,17 +72,11 @@ private:
      * Copying
      *********************************************************************/
 public:
-    /** @reimpl */
+    /** @reimp */
     Function* createCopy(Doc* doc, bool addToDoc = true);
 
     /** Copy the contents for this function from another function */
     bool copyFrom(const Function* function);
-
-    /*****************************************************************************
-     * Sorting
-     *****************************************************************************/
-    /** Comparator function for qSort() */
-    bool operator< (const Chaser& chs) const;
 
     /*********************************************************************
      * Chaser contents
@@ -121,20 +121,15 @@ public:
      */
     bool moveStep(int sourceIdx, int destIdx);
 
-    /**
-     * Clear the chaser's list of steps
-     */
-    void clear();
-
     /** Get the Chaser steps number */
-    int stepsCount();
+    int stepsCount() const;
 
     /**
      * Get a chaser step from a given index
      *
      * @return The requested Chaser Step
      */
-    ChaserStep stepAt(int idx);
+    ChaserStep *stepAt(int idx);
 
     /**
      * Get the chaser's list of steps
@@ -143,8 +138,11 @@ public:
      */
     QList <ChaserStep> steps() const;
 
-    /** Get the Chaser duration in milliseconds */
-    quint32 getDuration();
+    /** @reimpl */
+    void setTotalDuration(quint32 msec);
+
+    /** @reimpl */
+    quint32 totalDuration();
 
 public slots:
     /**
@@ -157,78 +155,22 @@ public slots:
      */
     void slotFunctionRemoved(quint32 fid);
 
-private:
+protected:
     QList <ChaserStep> m_steps;
     QMutex m_stepListMutex;
-
-    /*********************************************************************
-     * Sequence mode
-     *********************************************************************/
-public:
-    /**
-     * Set this chaser to behave like a sequence and be a child of a scene
-     * @param sceneID The ID of the scene to bound
-     *
-     */
-    void enableSequenceMode(quint32 sceneID);
-
-    /**
-     * Returns if a chaser is a sequence or not
-     *
-     * @return The sequence flag
-     */
-    bool isSequence() const;
-
-    /**
-     * Returns the current bound scene ID
-     *
-     * @return The associated Scene for this Chaser in sequence mode
-     */
-    quint32 getBoundSceneID() const;
-
-    /**
-     * Set the time where the Chaser is placed over a timeline
-     *
-     * @param time The start time in milliseconds of the Chaser
-     */
-    void setStartTime(quint32 time);
-
-    /**
-     * Returns the time where the Chaser is placed over a timeline
-     *
-     * @return Start time in milliseconds of the Chaser
-     */
-    quint32 getStartTime() const;
-
-    /**
-     * Set the color to be used by a SequenceItem
-     */
-    void setColor(QColor color);
-
-    /**
-     * Get the color of this sequence
-     */
-    QColor getColor();
-
-private:
-    /** This Chaser is a Sequence that uses always the same Scene for each step */
-    bool m_isSequence;
-    /** The associated Scene of this Chaser when acting like a Sequence */
-    quint32 m_boundSceneID;
-    /** Absolute start time of this Chaser over a timeline (in milliseconds) */
-    quint32 m_startTime;
-    /** Color to use when displaying the sequence in the Show manager */
-    QColor m_color;
 
     /*********************************************************************
      * Speed modes
      *********************************************************************/
 public:
     enum SpeedMode {
-        Default, //! Use step function's own speed setting
+        Default = 0, //! Use step function's own speed setting
         Common,  //! Impose a common chaser-specific speed to all steps
         PerStep  //! Impose a step-specific speed to each step
     };
+#if QT_VERSION >= 0x050500
+    Q_ENUM(SpeedMode)
+#endif
 
     void setFadeInMode(SpeedMode mode);
     SpeedMode fadeInMode() const;
@@ -242,7 +184,7 @@ public:
     static QString speedModeToString(SpeedMode mode);
     static SpeedMode stringToSpeedMode(const QString& str);
 
-private:
+protected:
     SpeedMode m_fadeInMode;
     SpeedMode m_fadeOutMode;
     SpeedMode m_holdMode;
@@ -250,38 +192,66 @@ private:
     /*********************************************************************
      * Save & Load
      *********************************************************************/
-public:
-    /** Save this function to an XML document */
-    bool saveXML(QDomDocument* doc, QDomElement* wksp_root);
+protected:
+    bool loadXMLSpeedModes(QXmlStreamReader &root);
 
-    /** Load this function contents from an XML document */
-    bool loadXML(const QDomElement& root);
+public:
+    /** @reimpl */
+    virtual bool saveXML(QXmlStreamWriter *doc);
+
+    /** @reimpl */
+    virtual bool loadXML(QXmlStreamReader &root);
 
     /** @reimp */
-    void postLoad();
+    virtual void postLoad();
 
     /*********************************************************************
      * Start/Next/Previous
+     * ChaserRunner wrappers
      *********************************************************************/
 public:
+    enum FadeControlMode
+    {
+        FromFunction = 0,
+        Blended,
+        Crossfade,
+        BlendedCrossfade
+    };
+
     /** @reimpl */
     void tap();
 
-    void setStepIndex(int idx);
+    /** Set an action to be performed on steps.
+     *  Depending on the action type, it might be applied immediately
+     *  or deferred to the next write() call */
+    void setAction(ChaserAction &action);
 
-    /** Skip to the previous step */
-    void previous();
+    /** Get the current step number */
+    int currentStepIndex() const;
 
-    /** Skip to the next step */
-    void next();
+    /** Compute next step for manual fading */
+    int computeNextStep(int currentStepIndex) const;
+
+    /** Get the running step number. */
+    int runningStepsNumber() const;
+
+    /** Get the first step of the running list. If none is running this returns NULL */
+    ChaserRunnerStep currentRunningStep() const;
 
 private:
-    int m_startStepIndex;
+    ChaserAction m_startupAction;
+
+public:
+    /** @reimp */
+    virtual bool contains(quint32 functionId);
+
+    /** @reimp */
+    QList<quint32> components();
 
     /*********************************************************************
      * Running
      *********************************************************************/
-public:
+private:
     /**
      * Create a ChaserRunner object from the given Chaser. The chaser's
      * step mutex is locked & unlocked in this method.
@@ -290,17 +260,19 @@ public:
      * @param doc The engine object
      * @return NULL if unsuccessful, otherwise a new ChaserRunner*
      */
-    static ChaserRunner* createRunner(Chaser* self, Doc* doc, quint32 startTime = 0, int startStepIdx = 0);
+    void createRunner(quint32 startTime = 0);
 
-    void useInternalRunner(bool enable);
-
-    /** @reimpl */
+public:
+    /** @reimp */
     void preRun(MasterTimer* timer);
 
-    /** @reimpl */
+    /** @reimp */
+    void setPause(bool enable);
+
+    /** @reimp */
     void write(MasterTimer* timer, QList<Universe *> universes);
 
-    /** @reimpl */
+    /** @reimp */
     void postRun(MasterTimer* timer, QList<Universe *> universes);
 
 signals:
@@ -308,15 +280,19 @@ signals:
     void currentStepChanged(int stepNumber);
 
 private:
+    QMutex m_runnerMutex;
     ChaserRunner* m_runner;
-    bool m_useInternalRunner;
 
     /*************************************************************************
      * Intensity
      *************************************************************************/
 public:
-    /** @reimpl */
-    void adjustAttribute(qreal fraction, int attributeIndex);
+    /** @reimp */
+    int adjustAttribute(qreal fraction, int attributeId);
+
+    /** Adjust the intensities of chaser steps. */
+    void adjustStepIntensity(qreal fraction, int stepIndex = -1,
+                             FadeControlMode fadeControl = FromFunction);
 };
 
 /** @} */

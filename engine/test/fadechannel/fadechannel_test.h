@@ -28,8 +28,9 @@ class FadeChannel_Test : public QObject
 
 private slots:
     void address();
+    void addressInUniverse();
     void comparison();
-    void group();
+    void type();
     void start();
     void target();
     void current();

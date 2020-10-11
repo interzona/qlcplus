@@ -23,10 +23,10 @@
 #include <QVBoxLayout>
 #include <QToolButton>
 #include <QSpinBox>
+#include <QDebug>
 #include <QLabel>
 #include <QMenu>
 #include <QList>
-#include <QtXml>
 
 #include "qlcchannel.h"
 #include "qlccapability.h"
@@ -45,13 +45,15 @@ ConsoleChannel::ConsoleChannel(QWidget* parent, Doc* doc, quint32 fixture, quint
     : QGroupBox(parent)
     , m_doc(doc)
     , m_fixture(fixture)
-    , m_channel(channel)
+    , m_chIndex(channel)
     , m_group(Fixture::invalidId())
     , m_presetButton(NULL)
     , m_cngWidget(NULL)
     , m_spin(NULL)
     , m_slider(NULL)
     , m_label(NULL)
+    , m_resetButton(NULL)
+    , m_showResetButton(false)
     , m_menu(NULL)
     , m_selected(false)
 {
@@ -62,7 +64,6 @@ ConsoleChannel::ConsoleChannel(QWidget* parent, Doc* doc, quint32 fixture, quint
         setCheckable(true);
     setFocusPolicy(Qt::NoFocus);
     init();
-    //setStyle(AppUtil::saneStyle());
 }
 
 ConsoleChannel::~ConsoleChannel()
@@ -78,8 +79,7 @@ void ConsoleChannel::init()
     layout()->setSpacing(0);
     layout()->setContentsMargins(0, 2, 0, 2);
 
-    /* Create a menu only if channel has sophisticated contents */
-    if (fxi != NULL && fxi->fixtureDef() != NULL && fxi->fixtureMode() != NULL)
+    if (fxi != NULL)
     {
         m_presetButton = new QToolButton(this);
         m_presetButton->setStyle(AppUtil::saneStyle());
@@ -89,7 +89,12 @@ void ConsoleChannel::init()
         m_presetButton->setMinimumSize(QSize(32, 32));
         m_presetButton->setMaximumSize(QSize(32, 32));
         m_presetButton->setFocusPolicy(Qt::NoFocus);
-        initMenu();
+
+        /* Create a menu only if channel has sophisticated contents */
+        if (fxi->fixtureDef() != NULL && fxi->fixtureMode() != NULL)
+            initMenu();
+        else
+            m_presetButton->setStyleSheet("QToolButton { border-image: url(:/intensity.png) 0 0 0 0 stretch stretch; }");
     }
 
     /* Value edit */
@@ -97,17 +102,16 @@ void ConsoleChannel::init()
     m_spin->setRange(0, UCHAR_MAX);
     m_spin->setValue(0);
     m_spin->setMinimumWidth(25);
+    m_spin->setMaximumWidth(40);
     m_spin->setButtonSymbols(QAbstractSpinBox::NoButtons);
     m_spin->setStyle(AppUtil::saneStyle());
     layout()->addWidget(m_spin);
     m_spin->setAlignment(Qt::AlignCenter);
     m_spin->setSizePolicy(QSizePolicy::Maximum, QSizePolicy::Preferred);
-    layout()->setAlignment(m_spin, Qt::AlignCenter);
+    layout()->setAlignment(m_spin, Qt::AlignHCenter);
 
     /* Value slider */
     m_slider = new ClickAndGoSlider(this);
-    //m_slider->setStyle(AppUtil::saneStyle());
-    layout()->addWidget(m_slider);
     m_slider->setInvertedAppearance(false);
     m_slider->setRange(0, UCHAR_MAX);
     m_slider->setPageStep(1);
@@ -118,7 +122,8 @@ void ConsoleChannel::init()
 
     m_slider->setMinimumWidth(25);
     m_slider->setMaximumWidth(40);
-    m_slider->setStyleSheet(
+    m_slider->setVisible(false);
+    m_slider->setSliderStyleSheet(
         "QSlider::groove:vertical { background: transparent; width: 32px; } "
 
         "QSlider::handle:vertical { "
@@ -139,6 +144,8 @@ void ConsoleChannel::init()
         "QSlider::handle:vertical:disabled { background: QLinearGradient(x1:0, y1:0, x2:0, y2:1, stop:0 #ddd, stop:0.45 #888, stop:0.50 #444, stop:0.55 #888, stop:1 #999);"
         "border: 1px solid #666; }"
         );
+    layout()->addWidget(m_slider);
+    //layout()->setAlignment(m_slider, Qt::AlignHCenter);
 
     /* Channel number label */
     m_label = new QLabel(this);
@@ -146,25 +153,37 @@ void ConsoleChannel::init()
     m_label->setMaximumWidth(80);
     layout()->addWidget(m_label);
     m_label->setAlignment(Qt::AlignCenter);
-    m_label->setText(QString::number(m_channel + 1));
+    m_label->setText(QString::number(m_chIndex + 1));
     m_label->setFocusPolicy(Qt::NoFocus);
     m_label->setWordWrap(true);
 
     /* Set tooltip */
-    if (fxi == NULL || fxi->isDimmer() == true)
+    if (fxi == NULL)
     {
         setToolTip(tr("Intensity"));
     }
     else
     {
-        const QLCChannel* ch = fxi->channel(m_channel);
+        const QLCChannel *ch = fxi->channel(m_chIndex);
         Q_ASSERT(ch != NULL);
         setToolTip(QString("%1").arg(ch->name()));
+        setValue(ch->defaultValue(), false);
+        m_channel = ch;
     }
 
     connect(m_spin, SIGNAL(valueChanged(int)), this, SLOT(slotSpinChanged(int)));
     connect(m_slider, SIGNAL(valueChanged(int)), this, SLOT(slotSliderChanged(int)));
     connect(this, SIGNAL(toggled(bool)), this, SLOT(slotChecked(bool)));
+}
+
+void ConsoleChannel::showEvent(QShowEvent *)
+{
+    if (m_styleSheet.isEmpty() == false)
+    {
+        setChannelStyleSheet(m_styleSheet);
+        m_slider->setVisible(true);
+        m_styleSheet = "";
+    }
 }
 
 /*****************************************************************************
@@ -176,7 +195,12 @@ quint32 ConsoleChannel::fixture() const
     return m_fixture;
 }
 
-quint32 ConsoleChannel::channel() const
+quint32 ConsoleChannel::channelIndex() const
+{
+    return m_chIndex;
+}
+
+const QLCChannel *ConsoleChannel::channel()
 {
     return m_channel;
 }
@@ -240,7 +264,7 @@ void ConsoleChannel::slotSpinChanged(int value)
         m_slider->setValue(value);
 
     if (m_group == Fixture::invalidId())
-        emit valueChanged(m_fixture, m_channel, value);
+        emit valueChanged(m_fixture, m_chIndex, value);
     else
         emit groupValueChanged(m_group, value);
 }
@@ -252,11 +276,64 @@ void ConsoleChannel::slotSliderChanged(int value)
 }
 void ConsoleChannel::slotChecked(bool state)
 {
-    emit checked(m_fixture, m_channel, state);
+    emit checked(m_fixture, m_chIndex, state);
 
     // Emit the current value also when turning the channel back on
     if (state == true)
-        emit valueChanged(m_fixture, m_channel, m_slider->value());
+        emit valueChanged(m_fixture, m_chIndex, m_slider->value());
+}
+
+/*************************************************************************
+ * Look & Feel
+ *************************************************************************/
+
+void ConsoleChannel::setChannelStyleSheet(const QString &styleSheet)
+{
+    if(isVisible())
+        QGroupBox::setStyleSheet(styleSheet);
+    else
+        m_styleSheet = styleSheet;
+}
+
+void ConsoleChannel::showResetButton(bool show)
+{
+    if (show == true)
+    {
+        if (m_resetButton == NULL)
+        {
+            m_resetButton = new QToolButton(this);
+            m_resetButton->setStyle(AppUtil::saneStyle());
+            layout()->addWidget(m_resetButton);
+            layout()->setAlignment(m_resetButton, Qt::AlignHCenter);
+            m_resetButton->setIconSize(QSize(32, 32));
+            m_resetButton->setMinimumSize(QSize(32, 32));
+            m_resetButton->setMaximumSize(QSize(32, 32));
+            m_resetButton->setFocusPolicy(Qt::NoFocus);
+            m_resetButton->setIcon(QIcon(":/fileclose.png"));
+            m_resetButton->setToolTip(tr("Reset this channel"));
+        }
+        connect(m_resetButton, SIGNAL(clicked(bool)),
+                this, SLOT(slotResetButtonClicked()));
+    }
+    else
+    {
+        if (m_resetButton != NULL)
+        {
+            layout()->removeWidget(m_resetButton);
+            delete m_resetButton;
+            m_resetButton = NULL;
+        }
+    }
+}
+
+bool ConsoleChannel::hasResetButton()
+{
+    return m_resetButton != NULL ? true : false;
+}
+
+void ConsoleChannel::slotResetButtonClicked()
+{
+    emit resetRequest(m_fixture, m_chIndex);
 }
 
 /*****************************************************************************
@@ -268,7 +345,7 @@ void ConsoleChannel::initMenu()
     Fixture* fxi = m_doc->fixture(fixture());
     Q_ASSERT(fxi != NULL);
 
-    const QLCChannel* ch = fxi->channel(m_channel);
+    const QLCChannel* ch = fxi->channel(m_chIndex);
     Q_ASSERT(ch != NULL);
 
     // Get rid of a possible previous menu
@@ -283,49 +360,30 @@ void ConsoleChannel::initMenu()
     m_presetButton->setMenu(m_menu);
     m_presetButton->setPopupMode(QToolButton::InstantPopup);
 
+    QString btnIconStr = ch->getIconNameFromGroup(ch->group());
+    if (btnIconStr.startsWith(":"))
+        m_presetButton->setStyleSheet("QToolButton { border-image: url(" + btnIconStr + ") 0 0 0 0 stretch stretch; }");
+    else
+    {
+        m_presetButton->setStyleSheet("QToolButton { background: " + btnIconStr + "; }");
+        setIntensityButton(ch);
+    }
+
     switch(ch->group())
     {
-    case QLCChannel::Pan:
-        m_presetButton->setIcon(QIcon(":/pan.png"));
-        break;
-    case QLCChannel::Tilt:
-        m_presetButton->setIcon(QIcon(":/tilt.png"));
-        break;
     case QLCChannel::Colour:
-        m_presetButton->setIcon(QIcon(":/colorwheel.png"));
         m_cngWidget = new ClickAndGoWidget();
         m_cngWidget->setType(ClickAndGoWidget::Preset, ch);
         break;
     case QLCChannel::Effect:
-        m_presetButton->setIcon(QIcon(":/star.png"));
         m_cngWidget = new ClickAndGoWidget();
         m_cngWidget->setType(ClickAndGoWidget::Preset, ch);
         break;
     case QLCChannel::Gobo:
-        m_presetButton->setIcon(QIcon(":/gobo.png"));
         m_cngWidget = new ClickAndGoWidget();
         m_cngWidget->setType(ClickAndGoWidget::Preset, ch);
         break;
-    case QLCChannel::Shutter:
-        m_presetButton->setIcon(QIcon(":/shutter.png"));
-        break;
-    case QLCChannel::Speed:
-        m_presetButton->setIcon(QIcon(":/speed.png"));
-        break;
-    case QLCChannel::Prism:
-        m_presetButton->setIcon(QIcon(":/prism.png"));
-        break;
-    case QLCChannel::Maintenance:
-        m_presetButton->setIcon(QIcon(":/configure.png"));
-        break;
-    case QLCChannel::Intensity:
-        setIntensityButton(ch);
-        break;
-    case QLCChannel::Beam:
-        m_presetButton->setIcon(QIcon(":/beam.png"));
-        break;
     default:
-        m_presetButton->setText("?");
         break;
     }
 
@@ -347,99 +405,90 @@ void ConsoleChannel::initMenu()
         m_menu->addSeparator();
 
         // Initialize the preset menu only for intelligent fixtures
-        if (fxi->isDimmer() == false)
-            initCapabilityMenu(ch);
+        initCapabilityMenu(ch);
     }
 }
 
 void ConsoleChannel::setIntensityButton(const QLCChannel* channel)
 {
-    if (channel->colour() == QLCChannel::Red ||
-        channel->name().contains("red", Qt::CaseInsensitive) == true)
+    QFont fnt = m_presetButton->font();
+    fnt.setBold(true);
+    m_presetButton->setFont(fnt);
+
+    if (channel->colour() == QLCChannel::Red)
     {
-        QPalette pal = m_presetButton->palette();
-        pal.setColor(QPalette::Button, Qt::red);
-        m_presetButton->setPalette(pal);
         m_presetButton->setText("R"); // Don't localize
         m_cngWidget = new ClickAndGoWidget();
         m_cngWidget->setType(ClickAndGoWidget::Red);
     }
-    else if (channel->colour() == QLCChannel::Green ||
-             channel->name().contains("green", Qt::CaseInsensitive) == true)
+    else if (channel->colour() == QLCChannel::Green)
     {
-        QPalette pal = m_presetButton->palette();
-        pal.setColor(QPalette::Button, Qt::green);
-        m_presetButton->setPalette(pal);
         m_presetButton->setText("G"); // Don't localize
         m_cngWidget = new ClickAndGoWidget();
         m_cngWidget->setType(ClickAndGoWidget::Green);
     }
-    else if (channel->colour() == QLCChannel::Blue ||
-             channel->name().contains("blue", Qt::CaseInsensitive) == true)
+    else if (channel->colour() == QLCChannel::Blue)
     {
         QPalette pal = m_presetButton->palette();
-        pal.setColor(QPalette::Button, Qt::blue);
         pal.setColor(QPalette::ButtonText, Qt::white); // Improve contrast
         m_presetButton->setPalette(pal);
         m_presetButton->setText("B"); // Don't localize
         m_cngWidget = new ClickAndGoWidget();
         m_cngWidget->setType(ClickAndGoWidget::Blue);
     }
-    else if (channel->colour() == QLCChannel::Cyan ||
-             channel->name().contains("cyan", Qt::CaseInsensitive) == true)
+    else if (channel->colour() == QLCChannel::Cyan)
     {
-        QPalette pal = m_presetButton->palette();
-        pal.setColor(QPalette::Button, QColor("cyan"));
-        m_presetButton->setPalette(pal);
         m_presetButton->setText("C"); // Don't localize
         m_cngWidget = new ClickAndGoWidget();
         m_cngWidget->setType(ClickAndGoWidget::Cyan);
     }
-    else if (channel->colour() == QLCChannel::Magenta ||
-             channel->name().contains("magenta", Qt::CaseInsensitive) == true)
+    else if (channel->colour() == QLCChannel::Magenta)
     {
-        QPalette pal = m_presetButton->palette();
-        pal.setColor(QPalette::Button, QColor("magenta"));
-        m_presetButton->setPalette(pal);
         m_presetButton->setText("M"); // Don't localize
         m_cngWidget = new ClickAndGoWidget();
         m_cngWidget->setType(ClickAndGoWidget::Magenta);
     }
-    else if (channel->colour() == QLCChannel::Yellow ||
-             channel->name().contains("yellow", Qt::CaseInsensitive) == true)
+    else if (channel->colour() == QLCChannel::Yellow)
     {
-        QPalette pal = m_presetButton->palette();
-        pal.setColor(QPalette::Button, QColor("yellow"));
-        m_presetButton->setPalette(pal);
         m_presetButton->setText("Y"); // Don't localize
         m_cngWidget = new ClickAndGoWidget();
         m_cngWidget->setType(ClickAndGoWidget::Yellow);
     }
-    else if (channel->colour() == QLCChannel::Amber ||
-             channel->name().contains("amber", Qt::CaseInsensitive) == true)
+    else if (channel->colour() == QLCChannel::Amber)
     {
-        QPalette pal = m_presetButton->palette();
-        pal.setColor(QPalette::Button, 0xFFFF7E00);
-        m_presetButton->setPalette(pal);
         m_presetButton->setText("A"); // Don't localize
         m_cngWidget = new ClickAndGoWidget();
         m_cngWidget->setType(ClickAndGoWidget::Amber);
     }
-    else if (channel->colour() == QLCChannel::White ||
-             channel->name().contains("white", Qt::CaseInsensitive) == true)
+    else if (channel->colour() == QLCChannel::White)
     {
-        QPalette pal = m_presetButton->palette();
-        pal.setColor(QPalette::Button, QColor("white"));
-        m_presetButton->setPalette(pal);
         m_presetButton->setText("W"); // Don't localize
         m_cngWidget = new ClickAndGoWidget();
         m_cngWidget->setType(ClickAndGoWidget::White);
+    }
+    else if (channel->colour() == QLCChannel::UV)
+    {
+        m_presetButton->setText("UV"); // Don't localize
+        m_cngWidget = new ClickAndGoWidget();
+        m_cngWidget->setType(ClickAndGoWidget::UV);
+    }
+    else if (channel->colour() == QLCChannel::Lime)
+    {
+        m_presetButton->setText("L");
+        m_cngWidget = new ClickAndGoWidget();
+        m_cngWidget->setType(ClickAndGoWidget::Lime);
+    }
+    else if (channel->colour() == QLCChannel::Indigo)
+    {
+        m_presetButton->setText("I");
+        m_cngWidget = new ClickAndGoWidget();
+        m_cngWidget->setType(ClickAndGoWidget::Indigo);
     }
     else
     {
         // None of the primary colours matched and since this is an
         // intensity channel, it must be controlling a plain dimmer OSLT.
-        m_presetButton->setIcon(QIcon(":/intensity.png"));
+        m_presetButton->setStyleSheet("QToolButton { border-image: url(:/intensity.png) 0 0 0 0 stretch stretch; }");
     }
 }
 
@@ -472,8 +521,7 @@ void ConsoleChannel::initCapabilityMenu(const QLCChannel* ch)
 
             for (int i = cap->min(); i <= cap->max(); i++)
             {
-                action = valueMenu->addAction(
-                             t.sprintf("%.3d", i));
+                action = valueMenu->addAction(t.asprintf("%.3d", i));
                 action->setData(i);
             }
 
@@ -618,7 +666,7 @@ void ConsoleChannel::slotControlClicked()
     qDebug() << "CONTROL modifier + click";
     if (m_selected == false)
     {
-        m_originalStyle = this->styleSheet();
+        m_originalStyle = styleSheet();
         int topMargin = isCheckable()?16:1;
 
         QString common = "QGroupBox::title {top:-15px; left: 12px; subcontrol-origin: border; background-color: transparent; } "
@@ -628,12 +676,12 @@ void ConsoleChannel::slotControlClicked()
         QString ssSelected = QString("QGroupBox { background-color: qlineargradient(x1: 0, y1: 0, x2: 0, y2: 1, stop: 0 #D9D730, stop: 1 #AFAD27); "
                                  "border: 1px solid gray; border-radius: 4px; margin-top: %1px; margin-right: 1px; } " +
                                  (isCheckable()?common:"")).arg(topMargin);
-        setStyleSheet(ssSelected);
+        setChannelStyleSheet(ssSelected);
         m_selected = true;
     }
     else
     {
-        this->setStyleSheet(m_originalStyle);
+        setChannelStyleSheet(m_originalStyle);
         m_selected = false;
     }
 }

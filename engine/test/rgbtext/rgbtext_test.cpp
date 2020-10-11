@@ -1,8 +1,9 @@
 /*
-  Q Light Controller
+  Q Light Controller Plus - Unit tests
   rgbtext_test.cpp
 
   Copyright (C) Heikki Junnila
+                Massimo Callegari
 
   Licensed under the Apache License, Version 2.0 (the "License");
   you may not use this file except in compliance with the License.
@@ -17,10 +18,10 @@
   limitations under the License.
 */
 
-#include <QDomDocument>
-#include <QFontMetrics>
-#include <QDomElement>
 #include <QtTest>
+#include <QFontMetrics>
+#include <QXmlStreamReader>
+#include <QXmlStreamWriter>
 
 #define private public
 #include "rgbtext_test.h"
@@ -42,7 +43,7 @@ void RGBText_Test::cleanupTestCase()
 void RGBText_Test::initial()
 {
     RGBText text(m_doc);
-    QCOMPARE(text.text(), QString(" Q LIGHT CONTROLLER "));
+    QCOMPARE(text.text(), QString(" Q LIGHT CONTROLLER + "));
     QCOMPARE(text.animationStyle(), RGBText::Horizontal);
     QCOMPARE(text.xOffset(), 0);
     QCOMPARE(text.yOffset(), 0);
@@ -152,48 +153,52 @@ void RGBText_Test::save()
     text.setXOffset(1);
     text.setYOffset(2);
 
-    QDomDocument doc;
-    QDomElement root = doc.createElement("Foo");
-    doc.appendChild(root);
+    QBuffer buffer;
+    buffer.open(QIODevice::WriteOnly | QIODevice::Text);
+    QXmlStreamWriter xmlWriter(&buffer);
 
-    QVERIFY(text.saveXML(&doc, &root) == true);
-    root = root.firstChild().toElement();
-    QCOMPARE(root.tagName(), QString("Algorithm"));
-    QCOMPARE(root.attribute("Type"), QString("Text"));
+    QVERIFY(text.saveXML(&xmlWriter) == true);
+
+    xmlWriter.setDevice(NULL);
+    buffer.close();
+
+    buffer.open(QIODevice::ReadOnly | QIODevice::Text);
+    QXmlStreamReader xmlReader(&buffer);
+    xmlReader.readNextStartElement();
+
+    QCOMPARE(xmlReader.name().toString(), QString("Algorithm"));
+    QCOMPARE(xmlReader.attributes().value("Type").toString(), QString("Text"));
 
     int content = 0, font = 0, ani = 0, offset = 0;
 
-    QDomNode node = root.firstChild();
-    while (node.isNull() == false)
+    while (xmlReader.readNextStartElement())
     {
-        QDomElement tag = node.toElement();
-        if (tag.tagName() == "Content")
+        if (xmlReader.name() == "Content")
         {
-            QCOMPARE(tag.text(), QString("Foo"));
+            QCOMPARE(xmlReader.readElementText(), QString("Foo"));
             content++;
         }
-        else if (tag.tagName() == "Font")
+        else if (xmlReader.name() == "Font")
         {
-            QCOMPARE(tag.text(), text.font().toString());
+            QCOMPARE(xmlReader.readElementText(), text.font().toString());
             font++;
         }
-        else if (tag.tagName() == "Animation")
+        else if (xmlReader.name() == "Animation")
         {
-            QCOMPARE(tag.text(), QString("Vertical"));
+            QCOMPARE(xmlReader.readElementText(), QString("Vertical"));
             ani++;
         }
-        else if (tag.tagName() == "Offset")
+        else if (xmlReader.name() == "Offset")
         {
-            QCOMPARE(tag.attribute("X").toInt(), 1);
-            QCOMPARE(tag.attribute("Y").toInt(), 2);
+            QCOMPARE(xmlReader.attributes().value("X").toString().toInt(), 1);
+            QCOMPARE(xmlReader.attributes().value("Y").toString().toInt(), 2);
             offset++;
+            xmlReader.skipCurrentElement();
         }
         else
         {
-            QFAIL(QString("Unexpected tag: %1").arg(tag.tagName()).toUtf8().constData());
+            QFAIL(QString("Unexpected tag: %1").arg(xmlReader.name().toString()).toUtf8().constData());
         }
-
-        node = node.nextSibling();
     }
 
     QCOMPARE(content, 1);
@@ -204,63 +209,110 @@ void RGBText_Test::save()
 
 void RGBText_Test::load()
 {
-    QDomDocument doc;
-    QDomElement root = doc.createElement("Algorithm");
-    root.setAttribute("Type", "Text");
-    doc.appendChild(root);
+    QBuffer buffer;
+    buffer.open(QIODevice::ReadWrite | QIODevice::Text);
+    QXmlStreamWriter xmlWriter(&buffer);
 
-    QDomElement content = doc.createElement("Content");
-    QDomText contentText = doc.createTextNode("Foobar");
-    content.appendChild(contentText);
-    root.appendChild(content);
+    xmlWriter.writeStartElement("Algorithm");
+    xmlWriter.writeAttribute("Type", "Text");
+
+    xmlWriter.writeTextElement("Content", "Foobar");
 
     QFont fn;
     fn.setPixelSize(1);
-    QDomElement font = doc.createElement("Font");
-    QDomText fontText = doc.createTextNode(fn.toString());
-    font.appendChild(fontText);
-    root.appendChild(font);
+    xmlWriter.writeTextElement("Font", fn.toString());
+    xmlWriter.writeTextElement("Animation", "Horizontal");
 
-    QDomElement ani = doc.createElement("Animation");
-    QDomText aniText = doc.createTextNode("Horizontal");
-    ani.appendChild(aniText);
-    root.appendChild(ani);
-
-    QDomElement offset = doc.createElement("Offset");
-    offset.setAttribute("X", 10);
-    offset.setAttribute("Y", -20);
-    root.appendChild(offset);
+    xmlWriter.writeStartElement("Offset");
+    xmlWriter.writeAttribute("X", "10");
+    xmlWriter.writeAttribute("Y", "-20");
+    xmlWriter.writeEndElement();
 
     // Extra crap
-    QDomElement foo = doc.createElement("Foobar");
-    root.appendChild(foo);
+    xmlWriter.writeStartElement("Foobar");
+    xmlWriter.writeEndElement();
+
+    xmlWriter.writeEndDocument();
+    xmlWriter.setDevice(NULL);
+
+    buffer.seek(0);
+    QXmlStreamReader xmlReader(&buffer);
+    xmlReader.readNextStartElement();
 
     RGBText text(m_doc);
-    QVERIFY(text.loadXML(root) == true);
+    QVERIFY(text.loadXML(xmlReader) == true);
     QCOMPARE(text.text(), QString("Foobar"));
     QCOMPARE(text.font(), fn);
     QCOMPARE(text.animationStyle(), RGBText::Horizontal);
     QCOMPARE(text.xOffset(), 10);
     QCOMPARE(text.yOffset(), -20);
 
-    fontText.setData("a,b,c,d,e,f,g,h,i,j,k,l,m,n,o,p,q,r,s,t,u,v,w,x,y,z");
-    QVERIFY(text.loadXML(root) == true);
+    buffer.close();
+    QByteArray bData = buffer.data();
+    bData.replace(fn.toString().toUtf8(), "a,b,c,d,e,f,g,h,i,j,k,l,m,n,o,p,q,r,s,t,u,v,w,x,y,z");
+    buffer.setData(bData);
+    buffer.open(QIODevice::ReadWrite | QIODevice::Text);
+    buffer.seek(0);
+    xmlReader.setDevice(&buffer);
+    xmlReader.readNextStartElement();
+
+    QVERIFY(text.loadXML(xmlReader) == true);
     QCOMPARE(text.font(), fn); // Invalid font is ignored by loadXML()
 
-    offset.setAttribute("X", "Foo");
-    QVERIFY(text.loadXML(root) == true);
+    buffer.close();
+    bData = buffer.data();
+    bData.replace("X=\"10\"", "X=\"Foo\"");
+    buffer.setData(bData);
+    buffer.open(QIODevice::ReadWrite | QIODevice::Text);
+    buffer.seek(0);
+    xmlReader.setDevice(&buffer);
+    xmlReader.readNextStartElement();
+
+    QVERIFY(text.loadXML(xmlReader) == true);
     QCOMPARE(text.xOffset(), 10); // Invalid offset is ignored by loadXML()
 
-    offset.setAttribute("X", "20");
-    offset.setAttribute("Y", "@£$");
-    QVERIFY(text.loadXML(root) == true);
+    buffer.close();
+    bData = buffer.data();
+    bData.replace("X=\"Foo\"", "X=\"20\"");
+    bData.replace("Y=\"-20\"", "Y=\"@£$\"");
+    buffer.setData(bData);
+    buffer.open(QIODevice::ReadWrite | QIODevice::Text);
+    buffer.seek(0);
+    xmlReader.setDevice(&buffer);
+    xmlReader.readNextStartElement();
+
+    QVERIFY(text.loadXML(xmlReader) == true);
     QCOMPARE(text.xOffset(), 20); // Valid X offset
     QCOMPARE(text.yOffset(), -20); // Invalid offset is ignored by loadXML()
 
-    QVERIFY(text.loadXML(foo) == false); // Invalid root node
+    buffer.close();
+    buffer.setData(QByteArray());
+    buffer.open(QIODevice::ReadWrite | QIODevice::Text);
+    xmlWriter.setDevice(&buffer);
+    xmlWriter.writeStartElement("Foo");
+    xmlWriter.writeEndDocument();
+    xmlWriter.setDevice(NULL);
+    buffer.seek(0);
 
-    root.setAttribute("Type", "Script"); // Invalid type
-    QVERIFY(text.loadXML(root) == false);
+    xmlReader.setDevice(&buffer);
+    xmlReader.readNextStartElement();
+
+    QVERIFY(text.loadXML(xmlReader) == false); // Invalid root node
+
+    buffer.close();
+    buffer.setData(QByteArray());
+    buffer.open(QIODevice::ReadWrite | QIODevice::Text);
+    xmlWriter.setDevice(&buffer);
+    xmlWriter.writeStartElement("Algorithm");
+    xmlWriter.writeAttribute("Type", "Script"); // Invalid type
+    xmlWriter.writeEndDocument();
+    xmlWriter.setDevice(NULL);
+    buffer.seek(0);
+
+    xmlReader.setDevice(&buffer);
+    xmlReader.readNextStartElement();
+
+    QVERIFY(text.loadXML(xmlReader) == false);
 }
 
 void RGBText_Test::staticLetters()
@@ -271,28 +323,29 @@ void RGBText_Test::staticLetters()
     QCOMPARE(text.rgbMapStepCount(QSize()), 3); // Q, L, C
 
     QRgb color(0xFFFFFFFF);
+    RGBMap map;
 
     // Since fonts and their rendering differs from installation to installation,
     // these tests are here only to check that nothing crashes. The end result is
     // more or less OS, platform, HW and SW dependent and testing individual pixels
     // would thus be rather pointless.
-    RGBMap map = text.rgbMap(QSize(10, 10), color, 0);
+    text.rgbMap(QSize(10, 10), color, 0, map);
     QCOMPARE(map.size(), 10);
     for (int i = 0; i < 10; i++)
         QCOMPARE(map[i].size(), 10);
 
-    map = text.rgbMap(QSize(10, 10), color, 1);
+    text.rgbMap(QSize(10, 10), color, 1, map);
     QCOMPARE(map.size(), 10);
     for (int i = 0; i < 10; i++)
         QCOMPARE(map[i].size(), 10);
 
-    map = text.rgbMap(QSize(10, 10), color, 2);
+    text.rgbMap(QSize(10, 10), color, 2, map);
     QCOMPARE(map.size(), 10);
     for (int i = 0; i < 10; i++)
         QCOMPARE(map[i].size(), 10);
 
     // Invalid step
-    map = text.rgbMap(QSize(10, 10), color, 3);
+    text.rgbMap(QSize(10, 10), color, 3, map);
     QCOMPARE(map.size(), 10);
     for (int i = 0; i < 10; i++)
     {
@@ -311,22 +364,36 @@ void RGBText_Test::horizontalScroll()
     text.setAnimationStyle(RGBText::Horizontal);
 
     QFontMetrics fm(text.font());
+#if (QT_VERSION < QT_VERSION_CHECK(5, 11, 0))
     QCOMPARE(text.rgbMapStepCount(QSize()), fm.width("QLC"));
+#else
+    QCOMPARE(text.rgbMapStepCount(QSize()), fm.horizontalAdvance("QLC"));
+#endif
 
     // Since fonts and their rendering differs from installation to installation,
     // these tests are here only to check that nothing crashes. The end result is
     // more or less OS, platform, HW and SW dependent and testing individual pixels
     // would thus be rather pointless.
+#if (QT_VERSION < QT_VERSION_CHECK(5, 13, 0))
     for (int i = 0; i < fm.width("QLC"); i++)
+#else
+    for (int i = 0; i < fm.horizontalAdvance("QLC"); i++)
+#endif
     {
-        RGBMap map = text.rgbMap(QSize(10, 10), QRgb(0xFFFFFFFF), i);
+        RGBMap map;
+        text.rgbMap(QSize(10, 10), QRgb(0xFFFFFFFF), i, map);
         QCOMPARE(map.size(), 10);
         for (int y = 0; y < 10; y++)
             QCOMPARE(map[y].size(), 10);
     }
 
+    RGBMap map;
     // Invalid step
-    RGBMap map = text.rgbMap(QSize(10, 10), QRgb(0xFFFFFFFF), fm.width("QLC"));
+#if (QT_VERSION < QT_VERSION_CHECK(5, 13, 0))
+    text.rgbMap(QSize(10, 10), QRgb(0xFFFFFFFF), fm.width("QLC"), map);
+#else
+    text.rgbMap(QSize(10, 10), QRgb(0xFFFFFFFF), fm.horizontalAdvance("QLC"), map);
+#endif
     QCOMPARE(map.size(), 10);
     for (int i = 0; i < 10; i++)
     {
@@ -353,14 +420,16 @@ void RGBText_Test::verticalScroll()
     // would thus be rather pointless.
     for (int i = 0; i < fm.ascent() * 3; i++)
     {
-        RGBMap map = text.rgbMap(QSize(10, 10), QRgb(0xFFFFFFFF), i);
+        RGBMap map;
+        text.rgbMap(QSize(10, 10), QRgb(0xFFFFFFFF), i, map);
         QCOMPARE(map.size(), 10);
         for (int y = 0; y < 10; y++)
             QCOMPARE(map[y].size(), 10);
     }
 
     // Invalid step
-    RGBMap map = text.rgbMap(QSize(10, 10), QRgb(0xFFFFFFFF), fm.ascent() * 4);
+    RGBMap map;
+    text.rgbMap(QSize(10, 10), QRgb(0xFFFFFFFF), fm.ascent() * 4, map);
     QCOMPARE(map.size(), 10);
     for (int i = 0; i < 10; i++)
     {

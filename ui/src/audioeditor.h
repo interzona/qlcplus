@@ -1,5 +1,5 @@
 /*
-  Q Light Controller
+  Q Light Controller Plus
   audioeditor.h
 
   Copyright (c) Massimo Callegari
@@ -21,7 +21,9 @@
 #define AUDIOEDITOR_H
 
 #include "ui_audioeditor.h"
+#include "function.h"
 
+class SpeedDialWidget;
 class Audio;
 class Doc;
 
@@ -44,8 +46,32 @@ private:
 
 private slots:
     void slotNameEdited(const QString& text);
+    void slotSourceFileClicked();
     void slotFadeInEdited();
     void slotFadeOutEdited();
+    void slotAudioDeviceChanged(int idx);
+    void slotPreviewToggled(bool state);
+    void slotPreviewStopped(quint32 id);
+    void slotSingleShotCheckClicked();
+    void slotLoopCheckClicked();
+
+private:
+    FunctionParent functionParent() const;
+
+    /************************************************************************
+     * Speed dials
+     ************************************************************************/
+private:
+    void createSpeedDials();
+
+private slots:
+    void slotSpeedDialToggle(bool state);
+    void slotFadeInDialChanged(int ms);
+    void slotFadeOutDialChanged(int ms);
+    void slotDialDestroyed(QObject* dial);
+
+private:
+    SpeedDialWidget *m_speedDials;
 };
 
 /** @} */

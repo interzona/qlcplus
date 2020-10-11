@@ -1,8 +1,9 @@
 /*
-  Q Light Controller
+  Q Light Controller Plus - Unit tests
   rgbmatrix_test.cpp
 
   Copyright (C) Heikki Junnila
+                Massimo Callegari
 
   Licensed under the Apache License, Version 2.0 (the "License");
   you may not use this file except in compliance with the License.
@@ -18,23 +19,25 @@
 */
 
 #include <QtTest>
-#include <QtXml>
+#include <QXmlStreamReader>
+#include <QXmlStreamWriter>
 
+#define protected public
 #define private public
+#include "rgbscriptscache.h"
 #include "rgbmatrix_test.h"
 #include "qlcfixturemode.h"
 #include "qlcfixturedef.h"
 #include "fixturegroup.h"
 #include "mastertimer.h"
-#include "rgbscript.h"
 #include "rgbmatrix.h"
 #include "fixture.h"
 #include "qlcfile.h"
 #include "doc.h"
 #undef private
+#undef protected
 
-#define INTERNAL_SCRIPTDIR "../../../rgbscripts/"
-#define INTERNAL_FIXTUREDIR "../../../fixtures/"
+#include "../common/resource_paths.h"
 
 void RGBMatrix_Test::initTestCase()
 {
@@ -43,7 +46,7 @@ void RGBMatrix_Test::initTestCase()
     QDir fxiDir(INTERNAL_FIXTUREDIR);
     fxiDir.setFilter(QDir::Files);
     fxiDir.setNameFilters(QStringList() << QString("*%1").arg(KExtFixture));
-    QVERIFY(m_doc->fixtureDefCache()->load(fxiDir) == true);
+    QVERIFY(m_doc->fixtureDefCache()->loadMap(fxiDir) == true);
 
     QLCFixtureDef* def = m_doc->fixtureDefCache()->fixtureDef("Stairville", "LED PAR56");
     QVERIFY(def != NULL);
@@ -59,13 +62,14 @@ void RGBMatrix_Test::initTestCase()
     {
         Fixture* fxi = new Fixture(m_doc);
         fxi->setFixtureDefinition(def, mode);
+        fxi->setAddress(i * fxi->channels());
         m_doc->addFixture(fxi);
 
         grp->assignFixture(fxi->id());
     }
 
-    RGBScript::setCustomScriptDirectory(INTERNAL_SCRIPTDIR);
-    QVERIFY(RGBScript::scripts(m_doc).size() != 0);
+    QVERIFY(m_doc->rgbScriptsCache()->load(QDir(INTERNAL_SCRIPTDIR)));
+    QVERIFY(m_doc->rgbScriptsCache()->names().size() != 0);
 }
 
 void RGBMatrix_Test::cleanupTestCase()
@@ -76,16 +80,18 @@ void RGBMatrix_Test::cleanupTestCase()
 void RGBMatrix_Test::initial()
 {
     RGBMatrix mtx(m_doc);
-    QCOMPARE(mtx.type(), Function::RGBMatrix);
+    QCOMPARE(mtx.type(), Function::RGBMatrixType);
     QCOMPARE(mtx.fixtureGroup(), FixtureGroup::invalidId());
     QCOMPARE(mtx.startColor(), QColor(Qt::red));
     QCOMPARE(mtx.endColor(), QColor());
-    QVERIFY(mtx.m_fader == NULL);
-    QCOMPARE(mtx.m_step, 0);
+    QCOMPARE(mtx.m_fadersMap.count(), 0);
+    QCOMPARE(mtx.m_stepHandler->currentStepIndex(), 0);
     QCOMPARE(mtx.name(), tr("New RGB Matrix"));
     QCOMPARE(mtx.duration(), uint(500));
+    QCOMPARE(mtx.totalDuration(), uint(0));
     QVERIFY(mtx.algorithm() != NULL);
-    QCOMPARE(mtx.algorithm()->name(), QString("Full Columns"));
+    QCOMPARE(mtx.algorithm()->name(), QString("Stripes"));
+    QCOMPARE(mtx.components().size(), 0);
 }
 
 void RGBMatrix_Test::group()
@@ -123,7 +129,7 @@ void RGBMatrix_Test::copy()
     mtx.setStartColor(Qt::magenta);
     mtx.setEndColor(Qt::yellow);
     mtx.setFixtureGroup(0);
-    mtx.setAlgorithm(RGBAlgorithm::algorithm(m_doc, "Full Columns"));
+    mtx.setAlgorithm(RGBAlgorithm::algorithm(m_doc, "Stripes"));
     QVERIFY(mtx.algorithm() != NULL);
 
     RGBMatrix* copyMtx = qobject_cast<RGBMatrix*> (mtx.createCopy(m_doc));
@@ -133,34 +139,65 @@ void RGBMatrix_Test::copy()
     QCOMPARE(copyMtx->fixtureGroup(), uint(0));
     QVERIFY(copyMtx->algorithm() != NULL);
     QVERIFY(copyMtx->algorithm() != mtx.algorithm()); // Different object pointer!
-    QCOMPARE(copyMtx->algorithm()->name(), QString("Full Columns"));
+    QCOMPARE(copyMtx->algorithm()->name(), QString("Stripes"));
 }
 
 void RGBMatrix_Test::previewMaps()
 {
     RGBMatrix mtx(m_doc);
+    RGBMatrixStep handler;
     QVERIFY(mtx.algorithm() != NULL);
-    QCOMPARE(mtx.algorithm()->name(), QString("Full Columns"));
+    QCOMPARE(mtx.algorithm()->name(), QString("Stripes"));
 
-    QList <RGBMap> maps = mtx.previewMaps();
-    QCOMPARE(maps.size(), 0); // No fixture group
+    int steps = mtx.stepsCount();
+    QCOMPARE(steps, 0);
+
+    mtx.previewMap(0, &handler);
+    QCOMPARE(handler.m_map.size(), 0); // No fixture group
 
     mtx.setFixtureGroup(0);
-    maps = mtx.previewMaps();
-    QCOMPARE(maps.size(), 5);
-    for (int z = 0; z < 5; z++)
+    steps = mtx.stepsCount();
+    QCOMPARE(steps, 5);
+    QCOMPARE(mtx.components().size(), 25);
+    QCOMPARE(mtx.totalDuration(), uint(2500));
+
+    mtx.setTotalDuration(8000);
+    QCOMPARE(mtx.totalDuration(), uint(8000));
+
+    mtx.previewMap(0, &handler);
+    QCOMPARE(handler.m_map.size(), 5);
+
+    for (int z = 0; z < steps; z++)
     {
+        mtx.previewMap(z, &handler);
         for (int y = 0; y < 5; y++)
         {
             for (int x = 0; x < 5; x++)
             {
                 if (x == z)
-                    QCOMPARE(maps[z][y][x], QColor(Qt::black).rgb());
+                    QCOMPARE(handler.m_map[y][x], QColor(Qt::black).rgb());
                 else
-                    QCOMPARE(maps[z][y][x], uint(0));
+                    QCOMPARE(handler.m_map[y][x], uint(0));
             }
         }
     }
+}
+
+void RGBMatrix_Test::property()
+{
+    RGBMatrix mtx(m_doc);
+    QVERIFY(mtx.algorithm() != NULL);
+    QCOMPARE(mtx.algorithm()->name(), QString("Stripes"));
+
+    // check on invalid property
+    QCOMPARE(mtx.property("foo"), QString());
+
+    // check a valid property
+    QCOMPARE(mtx.property("orientation"), QString("Horizontal"));
+
+    mtx.setProperty("orientation", "Vertical");
+
+    QCOMPARE(mtx.property("orientation"), QString("Vertical"));
 }
 
 void RGBMatrix_Test::loadSave()
@@ -168,10 +205,11 @@ void RGBMatrix_Test::loadSave()
     RGBMatrix* mtx = new RGBMatrix(m_doc);
     mtx->setStartColor(Qt::magenta);
     mtx->setEndColor(Qt::blue);
+    mtx->setControlMode(RGBMatrix::ControlModeRgb);
     mtx->setFixtureGroup(42);
-    mtx->setAlgorithm(RGBAlgorithm::algorithm(m_doc, "Full Rows"));
+    mtx->setAlgorithm(RGBAlgorithm::algorithm(m_doc, "Stripes"));
     QVERIFY(mtx->algorithm() != NULL);
-    QCOMPARE(mtx->algorithm()->name(), QString("Full Rows"));
+    QCOMPARE(mtx->algorithm()->name(), QString("Stripes"));
 
     mtx->setName("Xyzzy");
     mtx->setDirection(Function::Backward);
@@ -181,63 +219,76 @@ void RGBMatrix_Test::loadSave()
     mtx->setFadeOutSpeed(20);
     m_doc->addFunction(mtx);
 
-    QDomDocument doc;
-    QDomElement root = doc.createElement("Foo");
-    QVERIFY(mtx->saveXML(&doc, &root) == true);
-    QCOMPARE(root.firstChild().toElement().tagName(), QString("Function"));
-    QCOMPARE(root.firstChild().toElement().attribute("Type"), QString("RGBMatrix"));
-    QCOMPARE(root.firstChild().toElement().attribute("ID"), QString::number(mtx->id()));
-    QCOMPARE(root.firstChild().toElement().attribute("Name"), QString("Xyzzy"));
+    QBuffer buffer;
+    buffer.open(QIODevice::WriteOnly | QIODevice::Text);
+    QXmlStreamWriter xmlWriter(&buffer);
 
-    int speed = 0, dir = 0, run = 0, algo = 0, monocolor = 0, endcolor = 0, grp = 0;
+    QVERIFY(mtx->saveXML(&xmlWriter) == true);
 
-    QDomNode node = root.firstChild().firstChild();
-    while (node.isNull() == false)
+    xmlWriter.setDevice(NULL);
+    buffer.close();
+
+    buffer.open(QIODevice::ReadOnly | QIODevice::Text);
+    QXmlStreamReader xmlReader(&buffer);
+    xmlReader.readNextStartElement();
+
+    QCOMPARE(xmlReader.name().toString(), QString("Function"));
+    QCOMPARE(xmlReader.attributes().value("Type").toString(), QString("RGBMatrix"));
+    QCOMPARE(xmlReader.attributes().value("ID").toString(), QString::number(mtx->id()));
+    QCOMPARE(xmlReader.attributes().value("Name").toString(), QString("Xyzzy"));
+
+    int speed = 0, dir = 0, run = 0, algo = 0, monocolor = 0, endcolor = 0, grp = 0, colormode = 0;
+
+    while (xmlReader.readNextStartElement())
     {
-        QDomElement tag = node.toElement();
-        if (tag.tagName() == "Speed")
+        if (xmlReader.name() == "Speed")
         {
-            QCOMPARE(tag.attribute("FadeIn"), QString("10"));
-            QCOMPARE(tag.attribute("FadeOut"), QString("20"));
-            QCOMPARE(tag.attribute("Duration"), QString("1200"));
+            QCOMPARE(xmlReader.attributes().value("FadeIn").toString(), QString("10"));
+            QCOMPARE(xmlReader.attributes().value("FadeOut").toString(), QString("20"));
+            QCOMPARE(xmlReader.attributes().value("Duration").toString(), QString("1200"));
             speed++;
+            xmlReader.skipCurrentElement();
         }
-        else if (tag.tagName() == "Direction")
+        else if (xmlReader.name() == "Direction")
         {
-            QCOMPARE(tag.text(), QString("Backward"));
+            QCOMPARE(xmlReader.readElementText(), QString("Backward"));
             dir++;
         }
-        else if (tag.tagName() == "RunOrder")
+        else if (xmlReader.name() == "RunOrder")
         {
-            QCOMPARE(tag.text(), QString("PingPong"));
+            QCOMPARE(xmlReader.readElementText(), QString("PingPong"));
             run++;
         }
-        else if (tag.tagName() == "Algorithm")
+        else if (xmlReader.name() == "Algorithm")
         {
             // RGBAlgorithms take care of Algorithm tag's contents
             algo++;
+            xmlReader.skipCurrentElement();
         }
-        else if (tag.tagName() == "MonoColor")
+        else if (xmlReader.name() == "MonoColor")
         {
-            QCOMPARE(tag.text().toUInt(), QColor(Qt::magenta).rgb());
+            QCOMPARE(xmlReader.readElementText().toUInt(), QColor(Qt::magenta).rgb());
             monocolor++;
         }
-        else if (tag.tagName() == "EndColor")
+        else if (xmlReader.name() == "EndColor")
         {
-            QCOMPARE(tag.text().toUInt(), QColor(Qt::blue).rgb());
+            QCOMPARE(xmlReader.readElementText().toUInt(), QColor(Qt::blue).rgb());
             endcolor++;
         }
-        else if (tag.tagName() == "FixtureGroup")
+        else if (xmlReader.name() == "FixtureGroup")
         {
-            QCOMPARE(tag.text(), QString("42"));
+            QCOMPARE(xmlReader.readElementText(), QString("42"));
             grp++;
+        }
+        else if (xmlReader.name() == "ControlMode")
+        {
+            QCOMPARE(xmlReader.readElementText(), QString("RGB"));
+            colormode++;
         }
         else
         {
-            QFAIL(QString("Unexpected tag: %1").arg(tag.tagName()).toUtf8().constData());
+            QFAIL(QString("Unexpected tag: %1").arg(xmlReader.name().toString()).toUtf8().constData());
         }
-
-        node = node.nextSibling();
     }
 
     QCOMPARE(speed, 1);
@@ -247,18 +298,20 @@ void RGBMatrix_Test::loadSave()
     QCOMPARE(monocolor, 1);
     QCOMPARE(endcolor, 1);
     QCOMPARE(grp, 1);
+    QCOMPARE(colormode, 1);
 
-    // Put some extra garbage in
-    QDomNode parent = node.parentNode();
-    QDomElement foo = doc.createElement("Foo");
-    root.firstChild().appendChild(foo);
+    xmlReader.setDevice(NULL);
+    buffer.seek(0);
+    xmlReader.setDevice(&buffer);
+    xmlReader.readNextStartElement();
 
     RGBMatrix mtx2(m_doc);
-    QVERIFY(mtx2.loadXML(root.firstChild().toElement()) == true);
+    QVERIFY(mtx2.loadXML(xmlReader) == true);
     QCOMPARE(mtx2.direction(), Function::Backward);
     QCOMPARE(mtx2.runOrder(), Function::PingPong);
     QCOMPARE(mtx2.startColor(), QColor(Qt::magenta));
     QCOMPARE(mtx2.endColor(), QColor(Qt::blue));
+    QCOMPARE(mtx2.controlMode(), RGBMatrix::ControlModeRgb);
     QCOMPARE(mtx2.fixtureGroup(), uint(42));
     QVERIFY(mtx2.algorithm() != NULL);
     QCOMPARE(mtx2.algorithm()->name(), mtx->algorithm()->name());
@@ -266,9 +319,43 @@ void RGBMatrix_Test::loadSave()
     QCOMPARE(mtx2.fadeInSpeed(), uint(10));
     QCOMPARE(mtx2.fadeOutSpeed(), uint(20));
 
-    QVERIFY(mtx2.loadXML(root.toElement()) == false); // Not a function node
-    root.firstChild().toElement().setAttribute("Type", "Scene");
-    QVERIFY(mtx2.loadXML(root.firstChild().toElement()) == false); // Not an RGBMatrix node
+    buffer.close();
+    buffer.setData(QByteArray());
+
+    buffer.open(QIODevice::WriteOnly | QIODevice::Text);
+    xmlWriter.setDevice(&buffer);
+
+    // Put some extra garbage in
+    xmlWriter.writeStartElement("Foo");
+    xmlWriter.writeEndElement();
+
+    buffer.close();
+    buffer.open(QIODevice::ReadOnly | QIODevice::Text);
+
+    xmlReader.setDevice(&buffer);
+    xmlReader.readNextStartElement();
+
+    QVERIFY(mtx2.loadXML(xmlReader) == false); // Not a function node
+
+    xmlReader.setDevice(NULL);
+    buffer.close();
+    buffer.setData(QByteArray());
+
+    buffer.open(QIODevice::WriteOnly | QIODevice::Text);
+    xmlWriter.setDevice(&buffer);
+
+    // Put some extra garbage in
+    xmlWriter.writeStartElement("Function");
+    xmlWriter.writeAttribute("Type", "Scene");
+    xmlWriter.writeEndElement();
+
+    buffer.close();
+    buffer.open(QIODevice::ReadOnly | QIODevice::Text);
+
+    xmlReader.setDevice(&buffer);
+    xmlReader.readNextStartElement();
+    QVERIFY(mtx2.loadXML(xmlReader) == false); // Not an RGBMatrix node
+
 }
 
 QTEST_MAIN(RGBMatrix_Test)

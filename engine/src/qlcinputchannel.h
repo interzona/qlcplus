@@ -20,30 +20,44 @@
 #ifndef QLCINPUTCHANNEL_H
 #define QLCINPUTCHANNEL_H
 
+#include <QIcon>
 
+class QXmlStreamWriter;
+class QXmlStreamReader;
 class QLCInputProfile;
-class QDomDocument;
-class QDomElement;
 class QString;
 
 /** @addtogroup engine Engine
  * @{
  */
 
-#define KXMLQLCInputChannel "Channel"
-#define KXMLQLCInputChannelName "Name"
-#define KXMLQLCInputChannelType "Type"
-#define KXMLQLCInputChannelNumber "Number"
-#define KXMLQLCInputChannelSlider "Slider"
-#define KXMLQLCInputChannelKnob "Knob"
-#define KXMLQLCInputChannelButton "Button"
-#define KXMLQLCInputChannelPageUp "Next Page"
+#define KXMLQLCInputChannel         "Channel"
+#define KXMLQLCInputChannelName     "Name"
+#define KXMLQLCInputChannelType     "Type"
+#define KXMLQLCInputChannelNumber   "Number"
+#define KXMLQLCInputChannelSlider   "Slider"
+#define KXMLQLCInputChannelKnob     "Knob"
+#define KXMLQLCInputChannelEncoder  "Encoder"
+#define KXMLQLCInputChannelButton   "Button"
+#define KXMLQLCInputChannelPageUp   "Next Page"
 #define KXMLQLCInputChannelPageDown "Previous Page"
-#define KXMLQLCInputChannelPageSet "Page Set"
-#define KXMLQLCInputChannelNone "None"
+#define KXMLQLCInputChannelPageSet  "Page Set"
+#define KXMLQLCInputChannelNone     "None"
+#define KXMLQLCInputChannelMovement "Movement"
+#define KXMLQLCInputChannelRelative "Relative"
+#define KXMLQLCInputChannelSensitivity "Sensitivity"
+#define KXMLQLCInputChannelExtraPress "ExtraPress"
+#define KXMLQLCInputChannelFeedbacks "Feedbacks"
+#define KXMLQLCInputChannelLowerValue "LowerValue"
+#define KXMLQLCInputChannelUpperValue "UpperValue"
 
-class QLCInputChannel
+class QLCInputChannel : public QObject
 {
+    Q_OBJECT
+    Q_DISABLE_COPY(QLCInputChannel)
+
+    Q_PROPERTY(Type type READ type CONSTANT)
+
     /********************************************************************
      * Initialization
      ********************************************************************/
@@ -52,7 +66,8 @@ public:
     QLCInputChannel();
 
     /** Copy constructor */
-    QLCInputChannel(const QLCInputChannel& channel);
+    //QLCInputChannel(const QLCInputChannel& channel);
+    QLCInputChannel *createCopy();
 
     /** Destructor */
     virtual ~QLCInputChannel();
@@ -65,12 +80,16 @@ public:
     {
         Slider,
         Knob,
+        Encoder,
         Button,
         NextPage,
         PrevPage,
         PageSet,
         NoType
     };
+#if QT_VERSION >= 0x050500
+    Q_ENUM(Type)
+#endif
 
     /** Set the type of this channel (see enum Type) */
     void setType(Type type);
@@ -86,6 +105,14 @@ public:
 
     /** Get a list of available channel types */
     static QStringList types();
+
+    /** Get icon for a type */
+    static QIcon typeToIcon(Type type);
+
+    /** Get icon for a type */
+    static QIcon stringToIcon(const QString& str);
+
+    QIcon icon() const;
 
 protected:
     Type m_type;
@@ -103,6 +130,40 @@ public:
 protected:
     QString m_name;
 
+    /*********************************************************************
+     * Slider/Knob movement behaviour specific methods
+     *********************************************************************/
+public:
+    /** Movement behaviour */
+    enum MovementType {
+        Absolute = 0,
+        Relative = 1
+    };
+
+    MovementType movementType() const;
+    void setMovementType(MovementType type);
+
+    int movementSensitivity() const;
+    void setMovementSensitivity(int value);
+
+protected:
+    MovementType m_movementType;
+    int m_movementSensitivity;
+
+    /*********************************************************************
+     * Button behaviour specific methods
+     *********************************************************************/
+public:
+    void setSendExtraPress(bool enable);
+    bool sendExtraPress() const;
+    void setRange(uchar lower, uchar upper);
+    uchar lowerValue() const;
+    uchar upperValue() const;
+
+protected:
+    bool m_sendExtraPress;
+    uchar m_lower, m_upper;
+
     /********************************************************************
      * Load & Save
      ********************************************************************/
@@ -113,19 +174,17 @@ public:
      * @param root An input channel tag
      * @return true if successful, otherwise false
      */
-    bool loadXML(const QDomElement& root);
+    bool loadXML(QXmlStreamReader &root);
 
     /**
      * Save this channel's contents to the given XML document, setting the
      * given channel number as the channel's number.
      *
      * @param doc The master XML document to save to
-     * @param root The input profile root to save under
      * @param channelNumber The channel's number in the channel map
      * @return true if successful, otherwise false
      */
-    bool saveXML(QDomDocument* doc, QDomElement* root,
-                 quint32 channelNumber) const;
+    bool saveXML(QXmlStreamWriter *doc, quint32 channelNumber) const;
 };
 
 /** @} */

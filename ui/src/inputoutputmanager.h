@@ -77,7 +77,7 @@ private slots:
         working connection between a plugin and an input device. */
     void slotInputValueChanged(quint32 universe, quint32 channel, uchar value);
 
-    /** Hides the small icon after a while ^^ */
+    /** Hides the small icon after a while */
     void slotTimerTimeout();
 
     /** Displays an editor for the currently selected universe */
@@ -92,8 +92,12 @@ private slots:
     void slotAddUniverse();
     void slotDeleteUniverse();
     void slotUniverseNameChanged(QString name);
-    void slotUniverseAdded();
+    void slotUniverseAdded(quint32 universe);
     void slotPassthroughChanged(bool checked);
+
+protected:
+    /** @reimp */
+    void showEvent(QShowEvent* ev);
 
 private:
     Doc *m_doc;
@@ -107,6 +111,7 @@ private:
     QIcon m_icon;
     QTimer* m_timer;
     InputOutputPatchEditor *m_editor;
+    quint32 m_editorUniverse;
 };
 
 /** @} */

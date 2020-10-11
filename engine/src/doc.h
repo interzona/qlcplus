@@ -1,8 +1,9 @@
 /*
-  Q Light Controller
+  Q Light Controller Plus
   doc.h
 
   Copyright (c) Heikki Junnila
+                Massimo Callegari
 
   Licensed under the Apache License, Version 2.0 (the "License");
   you may not use this file except in compliance with the License.
@@ -26,19 +27,21 @@
 #include <QMap>
 
 #include "qlcfixturedefcache.h"
-#include "monitorproperties.h"
+#include "qlcmodifierscache.h"
 #include "inputoutputmap.h"
 #include "ioplugincache.h"
 #include "channelsgroup.h"
 #include "fixturegroup.h"
 #include "qlcclipboard.h"
 #include "mastertimer.h"
+#include "qlcpalette.h"
 #include "function.h"
 #include "fixture.h"
 
-class QDomDocument;
 class AudioCapture;
-class QString;
+class RGBScriptsCache;
+class AudioPluginCache;
+class MonitorProperties;
 
 /** @addtogroup engine Engine
  * @{
@@ -88,7 +91,7 @@ public:
      */
     QString normalizeComponentPath(const QString& filePath) const;
 
-    /** If filePath is relative path, it is resolved relative to the workspace 
+    /** If filePath is relative path, it is resolved relative to the workspace
      *  directory (absolute path is returned).
      *  If filePath is absolute, it is returned unchanged (symlinks and .. are resolved).
      *
@@ -106,7 +109,10 @@ signals:
     /** Emitted when clearContents() has finished. */
     void cleared();
 
-    /** Emitted the document has been completely loaded */
+    /** Emitted when the document is being loaded, before actually doing anything. */
+    void loading();
+
+    /** Emitted when the document has been completely loaded. */
     void loaded();
 
     /*********************************************************************
@@ -114,29 +120,47 @@ signals:
      *********************************************************************/
 public:
     /** Get the fixture definition cache object */
-    QLCFixtureDefCache* fixtureDefCache() const;
+    QLCFixtureDefCache *fixtureDefCache() const;
+
+    /** Set the fixure definition cache reference. This is useful
+     *  to share a cache between different Docs.
+     *  Note: deletion of an existing cache must be performed before calling
+     *        this method, otherwise it creates a memory leak */
+    void setFixtureDefinitionCache(QLCFixtureDefCache *cache);
+
+    /** Get the channel modifiers cache object */
+    QLCModifiersCache *modifiersCache() const;
+
+    /** Get the RGB scripts cache object */
+    RGBScriptsCache *rgbScriptsCache() const;
 
     /** Get the I/O plugin cache object */
-    IOPluginCache* ioPluginCache() const;
+    IOPluginCache *ioPluginCache() const;
+
+    /** Get the audio decoder plugin cache object */
+    AudioPluginCache *audioPluginCache() const;
 
     /** Get the DMX output map object */
-    InputOutputMap* inputOutputMap() const;
+    InputOutputMap *inputOutputMap() const;
 
     /** Get the MasterTimer object that runs the show */
-    MasterTimer* masterTimer() const;
+    MasterTimer *masterTimer() const;
 
     /** Get the audio input capture object */
-    AudioCapture* audioInputCapture();
+    QSharedPointer<AudioCapture> audioInputCapture();
 
     /** Destroy a previously created audio capture instance */
     void destroyAudioCapture();
 
 private:
-    QLCFixtureDefCache* m_fixtureDefCache;
-    IOPluginCache* m_ioPluginCache;
+    QLCFixtureDefCache *m_fixtureDefCache;
+    QLCModifiersCache *m_modifiersCache;
+    RGBScriptsCache *m_rgbScriptsCache;
+    IOPluginCache *m_ioPluginCache;
+    AudioPluginCache *m_audioPluginCache;
+    MasterTimer *m_masterTimer;
     InputOutputMap *m_ioMap;
-    MasterTimer* m_masterTimer;
-    AudioCapture *m_inputCapture;
+    QSharedPointer<AudioCapture> m_inputCapture;
     MonitorProperties *m_monitorProps;
 
     /*********************************************************************
@@ -177,19 +201,23 @@ protected:
      * Modified status
      *********************************************************************/
 public:
-    /**
-     * Check, whether Doc has been modified (and is in need of saving)
-     */
+    enum LoadStatus
+    {
+        Cleared = 0,
+        Loading,
+        Loaded
+    };
+
+    /** Get the current Doc load status */
+    LoadStatus loadStatus() const;
+
+    /** Check, whether Doc has been modified (and is in need of saving) */
     bool isModified() const;
 
-    /**
-     * Set Doc into modified state (i.e. it is in need of saving)
-     */
+    /** Set Doc into modified state (i.e. it is in need of saving) */
     void setModified();
 
-    /**
-     * Reset Doc's modified state (i.e. it is no longer in need of saving)
-     */
+    /** Reset Doc's modified state (i.e. it is no longer in need of saving) */
     void resetModified();
 
 signals:
@@ -197,7 +225,8 @@ signals:
     void modified(bool state);
 
 protected:
-    /** Modified status (true; needs saving, false; does not) */
+    /** The current Doc load status */
+    LoadStatus m_loadStatus;
     bool m_modified;
 
     /*********************************************************************
@@ -237,14 +266,6 @@ public:
     bool deleteFixture(quint32 id);
 
     /**
-     * Move the given fixture instance from an address to another
-     *
-     * @param id The ID of the fixture instance to move
-     * @param newAddress the new DMX address where the fixture must take place
-     */
-    bool moveFixture(quint32 id, quint32 newAddress);
-
-    /**
      * Replace the whole fixtures list with a new one.
      * This is done by remapping. Note that no signal is emitted to
      * avoid loosing scenes and all the stuff connected to fixtures.
@@ -256,12 +277,12 @@ public:
     bool replaceFixtures(QList<Fixture*> newFixturesList);
 
     /**
-     * Change the mode of an existing fixture
-     *
+     * Update the channels capabilities of an existing fixture with the given ID
      * @param id The ID of the fixture instance
-     * @param mode pointer to the new mode to be assigned
+     * @param forcedHTP A list of channel indices forced to act as HTP
+     * @param forcedLTP A list of channel indices forced to act as LTP
      */
-    bool changeFixtureMode(quint32 id, const QLCFixtureMode *mode);
+    bool updateFixtureChannelCapabilities(quint32 id, QList<int>forcedHTP, QList<int>forcedLTP);
 
     /**
      * Get the fixture instance that has the given ID
@@ -271,9 +292,9 @@ public:
     Fixture* fixture(quint32 id) const;
 
     /**
-     * Get a list of fixtures
+     * Get a list of fixtures ordered by ID
      */
-    QList <Fixture*> fixtures() const;
+    QList<Fixture*> const& fixtures() const;
 
     /**
      * Get the fixture that occupies the given DMX address. If multiple fixtures
@@ -314,11 +335,15 @@ private slots:
     void slotFixtureChanged(quint32 fxi_id);
 
 protected:
-    /** Fixtures */
-    QMap <quint32,Fixture*> m_fixtures;
+    /** Fixtures hash: < ID, Fixture instance > */
+    QHash <quint32, Fixture*> m_fixtures;
 
-    /** Addresses occupied by fixtures */
-    QHash <quint32,quint32> m_addresses;
+    /** Fixtures list cache */
+    bool m_fixturesListCacheUpToDate;
+    QList<Fixture*> m_fixturesListCache;
+
+    /** Map of the addresses occupied by fixtures */
+    QHash <quint32, quint32> m_addresses;
 
     /** Latest assigned fixture ID */
     quint32 m_latestFixtureId;
@@ -363,11 +388,11 @@ private:
     quint32 m_latestFixtureGroupId;
 
     /*********************************************************************
-     * Channels groups
+     * Channel groups
      *********************************************************************/
 public:
     /** Add a new channels group. Doc takes ownership of the group. */
-    bool addChannelsGroup(ChannelsGroup *grp, quint32 id = FixtureGroup::invalidId());
+    bool addChannelsGroup(ChannelsGroup *grp, quint32 id = ChannelsGroup::invalidId());
 
     /**
      * Remove and delete a channels group.
@@ -403,8 +428,45 @@ private:
      *  in the Fixture Manager panel */
     QList <quint32> m_orderedGroups;
 
-    /** Latest assigned fixture group ID */
+    /** Latest assigned channel group ID */
     quint32 m_latestChannelsGroupId;
+
+    /*********************************************************************
+     * Palettes
+     *********************************************************************/
+public:
+    /** Add a new palette. Doc takes ownership of it */
+    bool addPalette(QLCPalette *palette, quint32 id = QLCPalette::invalidId());
+
+    /**
+     * Remove and delete a palette.
+     * The Palette pointer is invalid after this call.
+     */
+    bool deletePalette(quint32 id);
+
+    /** Get a palette by id */
+    QLCPalette *palette(quint32 id) const;
+
+    /** Get a list of Doc's palettes */
+    QList <QLCPalette*> palettes() const;
+
+private:
+    /** Create a new palette ID */
+    quint32 createPaletteId();
+
+signals:
+    /** Inform the listeners that a new palette has been added */
+    void paletteAdded(quint32 id);
+
+    /** Inform the listeners that a new palette has been removed */
+    void paletteRemoved(quint32 id);
+
+private:
+    /** Palettes */
+    QMap <quint32,QLCPalette*> m_palettes;
+
+    /** Latest assigned palette ID */
+    quint32 m_latestPaletteId;
 
     /*********************************************************************
      * Functions
@@ -474,11 +536,13 @@ public:
     quint32 startupFunction();
 
     /**
-     * Check if a startup function needs to be started.
+     * Find the usage of a Function with the specified $fid
+     * within Doc
      *
-     * @return true if function is started, false if it's not
+     * @param fid the Function ID to look up for
+     * @return a list of Function IDs and, if available, the step position
      */
-    bool checkStartupFunction();
+    QList<quint32> getUsage(quint32 fid);
 
 protected:
     /**
@@ -500,6 +564,9 @@ private slots:
     /** Slot that catches function change signals */
     void slotFunctionChanged(quint32 fid);
 
+    /** Slot that catches function name change signals */
+    void slotFunctionNameChanged(quint32 fid);
+
 signals:
     /** Signal that a function has been added */
     void functionAdded(quint32 function);
@@ -509,6 +576,9 @@ signals:
 
     /** Signal that a function has been changed */
     void functionChanged(quint32 function);
+
+    /** Signal that a function has been changed */
+    void functionNameChanged(quint32 function);
 
 protected:
     /** Functions */
@@ -524,6 +594,7 @@ protected:
      * Monitor Properties
      *********************************************************************/
 public:
+    /** Returns a reference to the monitor properties instance */
     MonitorProperties *monitorProperties();
 
     /*********************************************************************
@@ -536,7 +607,7 @@ public:
      * @param root The Engine XML root node to load from
      * @return true if successful, otherwise false
      */
-    bool loadXML(const QDomElement& root);
+    bool loadXML(QXmlStreamReader &doc);
 
     /**
      * Save contents to the given XML file.
@@ -545,13 +616,18 @@ public:
      * @param wksp_root The workspace root node to save under
      * @return true if successful, otherwise false
      */
-    bool saveXML(QDomDocument* doc, QDomElement* wksp_root);
+    bool saveXML(QXmlStreamWriter *doc);
 
     /**
      * Append a message to the Doc error log. This can be used to display
      * errors once a project is loaded.
      */
     void appendToErrorLog(QString error);
+
+    /**
+     * Clear any previously filled error log
+     */
+    void clearErrorLog();
 
     /**
      * Retrieve the error log string, filled during a project load

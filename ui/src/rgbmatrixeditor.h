@@ -20,7 +20,6 @@
 #ifndef RGBMATRIXEDITOR_H
 #define RGBMATRIXEDITOR_H
 
-#include <QPointer>
 #include <QWidget>
 #include <QHash>
 
@@ -31,9 +30,8 @@
 
 class SpeedDialWidget;
 class QGraphicsScene;
-class RGBMatrix;
+class RGBItem;
 class QTimer;
-class Doc;
 
 /** @addtogroup ui_functions
  * @{
@@ -51,6 +49,8 @@ public:
     RGBMatrixEditor(QWidget* parent, RGBMatrix* mtx, Doc* doc);
     ~RGBMatrixEditor();
 
+    void stopTest();
+
 public slots:
     void slotFunctionManagerActive(bool active);
 
@@ -63,6 +63,9 @@ private:
     void fillAnimationCombo();
     void fillImageAnimationCombo();
     void updateExtraOptions();
+    void updateColors();
+    void resetProperties(QLayoutItem *item);
+    void displayProperties(RGBScript *script);
 
     bool createPreviewItems();
 
@@ -72,8 +75,11 @@ private slots:
     void slotSpeedDialToggle(bool state);
     void slotPatternActivated(const QString& text);
     void slotFixtureGroupActivated(int index);
+    void slotBlendModeChanged(int index);
+    void slotColorModeChanged(int index);
     void slotStartColorButtonClicked();
     void slotEndColorButtonClicked();
+    void slotResetEndColorButtonClicked();
 
     void slotTextEdited(const QString& text);
     void slotFontButtonClicked();
@@ -91,6 +97,8 @@ private slots:
     void slotForwardClicked();
     void slotBackwardClicked();
 
+    void slotDimmerControlClicked();
+
     void slotFadeInChanged(int ms);
     void slotFadeOutChanged(int ms);
     void slotHoldChanged(int ms);
@@ -105,22 +113,28 @@ private slots:
     void slotFixtureGroupChanged(quint32 id);
 
     void slotSaveToSequenceClicked();
+    void slotShapeToggle(bool);
+
+    void slotPropertyComboChanged(QString value);
+    void slotPropertySpinChanged(int value);
+
+private:
+    FunctionParent functionParent() const;
 
 private:
     Doc* m_doc;
     RGBMatrix* m_matrix; // The RGBMatrix being edited
+    RGBMatrixStep *m_previewHandler;
 
     QList <RGBScript> m_scripts;
-    QList <RGBMap> m_previewMaps;
-    Function::Direction m_previewDirection;
 
-    QPointer<SpeedDialWidget> m_speedDials;
+    SpeedDialWidget *m_speedDials;
 
     QGraphicsScene* m_scene;
     QTimer* m_previewTimer;
     uint m_previewIterator;
-    int m_previewStep;
-    QHash <QLCPoint,QGraphicsItem*> m_previewHash;
+
+    QHash<QLCPoint, RGBItem*> m_previewHash;
 };
 
 /** @} */

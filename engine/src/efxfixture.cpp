@@ -1,8 +1,9 @@
 /*
-  Q Light Controller
+  Q Light Controller Plus
   efxfixture.cpp
 
   Copyright (c) Heikki Junnila
+                Massimo Callegari
 
   Licensed under the Apache License, Version 2.0 (the "License");
   you may not use this file except in compliance with the License.
@@ -17,8 +18,8 @@
   limitations under the License.
 */
 
-#include <QDomDocument>
-#include <QDomElement>
+#include <QXmlStreamReader>
+#include <QXmlStreamWriter>
 #include <QDebug>
 #include <math.h>
 
@@ -31,29 +32,33 @@
 #include "scene.h"
 #include "efx.h"
 #include "doc.h"
+#include "gradient.h"
+
 
 /*****************************************************************************
  * Initialization
  *****************************************************************************/
+QImage EFXFixture::m_rgbGradient = QImage();
 
 EFXFixture::EFXFixture(const EFX* parent)
     : m_parent(parent)
     , m_head()
+    , m_universe(Universe::invalid())
     , m_direction(Function::Forward)
     , m_startOffset(0)
-    , m_fadeIntensity(255)
+    , m_mode(EFXFixture::PanTilt)
 
     , m_serialNumber(0)
     , m_runTimeDirection(Function::Forward)
     , m_ready(false)
     , m_started(false)
     , m_elapsed(0)
-    , m_startAngle(0)
     , m_currentAngle(0)
-
-    , m_intensity(1.0)
 {
     Q_ASSERT(parent != NULL);
+
+    if(m_rgbGradient.isNull ())
+        m_rgbGradient = Gradient::getRGBGradient (256, 256);
 }
 
 void EFXFixture::copyFrom(const EFXFixture* ef)
@@ -61,19 +66,17 @@ void EFXFixture::copyFrom(const EFXFixture* ef)
     // Don't copy m_parent because it is already assigned in constructor and might
     // be different than $ef's
     m_head = ef->m_head;
+    m_universe = ef->m_universe;
     m_direction = ef->m_direction;
     m_startOffset = ef->m_startOffset;
-    m_fadeIntensity = ef->m_fadeIntensity;
+    m_mode = ef->m_mode;
 
     m_serialNumber = ef->m_serialNumber;
     m_runTimeDirection = ef->m_runTimeDirection;
     m_ready = ef->m_ready;
     m_started = ef->m_started;
     m_elapsed = ef->m_elapsed;
-    m_startAngle = ef->m_startAngle;
     m_currentAngle = ef->m_currentAngle;
-
-    m_intensity = ef->m_intensity;
 }
 
 EFXFixture::~EFXFixture()
@@ -87,6 +90,31 @@ EFXFixture::~EFXFixture()
 void EFXFixture::setHead(GroupHead const & head)
 {
     m_head = head;
+
+    Fixture *fxi = doc()->fixture(head.fxi);
+    if (fxi == NULL)
+        return;
+
+    m_universe = fxi->universe();
+
+    QList<Mode> modes;
+
+    if (fxi->channelNumber(QLCChannel::Pan, QLCChannel::MSB, head.head) != QLCChannel::invalid() ||
+        fxi->channelNumber(QLCChannel::Tilt, QLCChannel::MSB, head.head) != QLCChannel::invalid())
+        modes << PanTilt;
+
+    if (fxi->masterIntensityChannel() != QLCChannel::invalid() ||
+        fxi->channelNumber(QLCChannel::Intensity, QLCChannel::MSB, head.head) != QLCChannel::invalid())
+        modes << Dimmer;
+
+    if (fxi->rgbChannels(head.head).size() >= 3)
+        modes << RGB;
+
+    if (!modes.contains(m_mode))
+    {
+        if (modes.size() > 0)
+            m_mode = modes[0];
+    }
 }
 
 GroupHead const & EFXFixture::head() const
@@ -115,25 +143,38 @@ int EFXFixture::startOffset() const
     return m_startOffset;
 }
 
-void EFXFixture::setFadeIntensity(uchar value)
+void EFXFixture::setMode(Mode mode)
 {
-    m_fadeIntensity = value;
+    m_mode = mode;
 }
 
-uchar EFXFixture::fadeIntensity() const
+EFXFixture::Mode EFXFixture::mode() const
 {
-    return m_fadeIntensity;
+    return m_mode;
+}
+
+quint32 EFXFixture::universe()
+{
+    return m_universe;
 }
 
 bool EFXFixture::isValid() const
 {
-    Fixture* fxi = doc()->fixture(head().fxi);
+    Fixture *fxi = doc()->fixture(head().fxi);
+
     if (fxi == NULL)
         return false;
     else if (head().head >= fxi->heads())
         return false;
-    else if (fxi->panMsbChannel(head().head) == QLCChannel::invalid() && // Maybe a device can pan OR tilt
-             fxi->tiltMsbChannel(head().head) == QLCChannel::invalid())   // but not both. Teh sux0r.
+    else if (m_mode == PanTilt &&
+             fxi->channelNumber(QLCChannel::Pan, QLCChannel::MSB, head().head) == QLCChannel::invalid() && // Maybe a device can pan OR tilt
+             fxi->channelNumber(QLCChannel::Tilt, QLCChannel::MSB, head().head) == QLCChannel::invalid())   // but not both
+        return false;
+    else if (m_mode == Dimmer &&
+             fxi->masterIntensityChannel() == QLCChannel::invalid() &&
+             fxi->channelNumber(QLCChannel::Intensity, QLCChannel::MSB, head().head) == QLCChannel::invalid())
+        return false;
+    else if (m_mode == RGB && fxi->rgbChannels(head().head).size () == 0)
         return false;
     else
         return true;
@@ -141,17 +182,77 @@ bool EFXFixture::isValid() const
 
 void EFXFixture::durationChanged()
 {
-    m_startAngle = m_currentAngle;
-    m_elapsed = 0;
+    // To avoid jumps when changing duration,
+    // the elapsed time is rescaled to the
+    // new duration.
+    m_elapsed = SCALE(float(m_currentAngle),
+            float(0), float(M_PI * 2),
+            float(0), float(m_parent->duration()));
+
+    // Serial or Asymmetric propagation mode:
+    // we must substract the offset from the current position
+    if (timeOffset())
+    {
+        if (m_elapsed < timeOffset())
+            m_elapsed += m_parent->duration();
+        m_elapsed -= timeOffset();
+    }
+}
+
+QStringList EFXFixture::modeList()
+{
+    Fixture* fxi = doc()->fixture(head().fxi);
+    Q_ASSERT(fxi != NULL);
+
+    QStringList modes;
+
+    if(fxi->channelNumber(QLCChannel::Pan, QLCChannel::MSB, head().head) != QLCChannel::invalid() ||
+       fxi->channelNumber(QLCChannel::Tilt, QLCChannel::MSB, head().head) != QLCChannel::invalid())
+        modes << KXMLQLCEFXFixtureModePanTilt;
+
+    if(fxi->masterIntensityChannel() != QLCChannel::invalid() ||
+       fxi->channelNumber(QLCChannel::Intensity, QLCChannel::MSB, head().head) != QLCChannel::invalid())
+        modes << KXMLQLCEFXFixtureModeDimmer;
+
+    if(fxi->rgbChannels(head().head).size() >= 3)
+        modes << KXMLQLCEFXFixtureModeRGB;
+
+    return modes;
+}
+
+QString EFXFixture::modeToString(Mode mode)
+{
+    switch (mode)
+    {
+        default:
+        case PanTilt:
+            return QString(KXMLQLCEFXFixtureModePanTilt);
+        case Dimmer:
+            return QString(KXMLQLCEFXFixtureModeDimmer);
+        case RGB:
+            return QString(KXMLQLCEFXFixtureModeRGB);
+    }
+}
+
+EFXFixture::Mode EFXFixture::stringToMode(const QString& str)
+{
+    if (str == QString(KXMLQLCEFXFixtureModePanTilt))
+        return PanTilt;
+    else if (str == QString(KXMLQLCEFXFixtureModeDimmer))
+        return Dimmer;
+    else if (str == QString(KXMLQLCEFXFixtureModeRGB))
+        return RGB;
+    else
+        return PanTilt;
 }
 
 /*****************************************************************************
  * Load & Save
  *****************************************************************************/
 
-bool EFXFixture::loadXML(const QDomElement& root)
+bool EFXFixture::loadXML(QXmlStreamReader &root)
 {
-    if (root.tagName() != KXMLQLCEFXFixture)
+    if (root.name() != KXMLQLCEFXFixture)
     {
         qWarning("EFX Fixture node not found!");
         return false;
@@ -161,41 +262,44 @@ bool EFXFixture::loadXML(const QDomElement& root)
     head.head = 0;
 
     /* New file format contains sub tags */
-    QDomNode node = root.firstChild();
-    while (node.isNull() == false)
+    while (root.readNextStartElement())
     {
-        QDomElement tag = node.toElement();
-        if (tag.tagName() == KXMLQLCEFXFixtureID)
+        if (root.name() == KXMLQLCEFXFixtureID)
         {
             /* Fixture ID */
-            head.fxi = tag.text().toInt();
+            head.fxi = root.readElementText().toInt();
         }
-        else if (tag.tagName() == KXMLQLCEFXFixtureHead)
+        else if (root.name() == KXMLQLCEFXFixtureHead)
         {
             /* Fixture Head */
-            head.head = tag.text().toInt();
+            head.head = root.readElementText().toInt();
         }
-        else if (tag.tagName() == KXMLQLCEFXFixtureDirection)
+        else if (root.name() == KXMLQLCEFXFixtureMode)
+        {
+            /* Fixture Mode */
+            setMode ((Mode) root.readElementText().toInt());
+        }
+        else if (root.name() == KXMLQLCEFXFixtureDirection)
         {
             /* Direction */
-            Function::Direction dir = Function::stringToDirection(tag.text());
+            Function::Direction dir = Function::stringToDirection(root.readElementText());
             setDirection(dir);
         }
-        else if (tag.tagName() == KXMLQLCEFXFixtureStartOffset)
+        else if (root.name() == KXMLQLCEFXFixtureStartOffset)
         {
             /* Start offset */
-            setStartOffset(tag.text().toInt());
+            setStartOffset(root.readElementText().toInt());
         }
-        else if (tag.tagName() == KXMLQLCEFXFixtureIntensity)
+        else if (root.name() == KXMLQLCEFXFixtureIntensity)
         {
-            /* Intensity */
-            setFadeIntensity(uchar(tag.text().toUInt()));
+            /* Intensity - LEGACY */
+            root.skipCurrentElement();
         }
         else
         {
-            qWarning() << "Unknown EFX Fixture tag:" << tag.tagName();
+            qWarning() << "Unknown EFX Fixture tag:" << root.name();
+            root.skipCurrentElement();
         }
-        node = node.nextSibling();
     }
 
     if (head.fxi != Fixture::invalidId())
@@ -204,48 +308,26 @@ bool EFXFixture::loadXML(const QDomElement& root)
     return true;
 }
 
-bool EFXFixture::saveXML(QDomDocument* doc, QDomElement* efx_root) const
+bool EFXFixture::saveXML(QXmlStreamWriter *doc) const
 {
-    QDomElement subtag;
-    QDomElement tag;
-    QDomText text;
-
     Q_ASSERT(doc != NULL);
-    Q_ASSERT(efx_root != NULL);
 
     /* EFXFixture */
-    tag = doc->createElement(KXMLQLCEFXFixture);
-    efx_root->appendChild(tag);
+    doc->writeStartElement(KXMLQLCEFXFixture);
 
     /* Fixture ID */
-    subtag = doc->createElement(KXMLQLCEFXFixtureID);
-    tag.appendChild(subtag);
-    text = doc->createTextNode(QString("%1").arg(head().fxi));
-    subtag.appendChild(text);
-
+    doc->writeTextElement(KXMLQLCEFXFixtureID, QString("%1").arg(head().fxi));
     /* Fixture Head */
-    subtag = doc->createElement(KXMLQLCEFXFixtureHead);
-    tag.appendChild(subtag);
-    text = doc->createTextNode(QString("%1").arg(head().head));
-    subtag.appendChild(text);
-
+    doc->writeTextElement(KXMLQLCEFXFixtureHead, QString("%1").arg(head().head));
+    /* Mode */
+    doc->writeTextElement(KXMLQLCEFXFixtureMode, QString::number(mode()));
     /* Direction */
-    subtag = doc->createElement(KXMLQLCEFXFixtureDirection);
-    tag.appendChild(subtag);
-    text = doc->createTextNode(Function::directionToString(m_direction));
-    subtag.appendChild(text);
-
+    doc->writeTextElement(KXMLQLCEFXFixtureDirection, Function::directionToString(m_direction));
     /* Start offset */
-    subtag = doc->createElement(KXMLQLCEFXFixtureStartOffset);
-    tag.appendChild(subtag);
-    text = doc->createTextNode(QString::number(startOffset()));
-    subtag.appendChild(text);
+    doc->writeTextElement(KXMLQLCEFXFixtureStartOffset, QString::number(startOffset()));
 
-    /* Intensity */
-    subtag = doc->createElement(KXMLQLCEFXFixtureIntensity);
-    tag.appendChild(subtag);
-    text = doc->createTextNode(QString::number(fadeIntensity()));
-    subtag.appendChild(text);
+    /* End the <Fixture> tag */
+    doc->writeEndElement();
 
     return true;
 }
@@ -276,7 +358,6 @@ void EFXFixture::reset()
     m_runTimeDirection = m_direction;
     m_started = false;
     m_elapsed = 0;
-    m_startAngle = 0;
     m_currentAngle = 0;
 }
 
@@ -302,7 +383,17 @@ uint EFXFixture::timeOffset() const
  * Running
  *****************************************************************************/
 
-void EFXFixture::nextStep(MasterTimer* timer, QList<Universe *> universes)
+void EFXFixture::start()
+{
+    m_started = true;
+}
+
+void EFXFixture::stop()
+{
+    m_started = false;
+}
+
+void EFXFixture::nextStep(QList<Universe *> universes, QSharedPointer<GenericFader> fader)
 {
     m_elapsed += MasterTimer::tick();
 
@@ -317,7 +408,7 @@ void EFXFixture::nextStep(MasterTimer* timer, QList<Universe *> universes)
 
     // Fade in
     if (m_started == false)
-        start(timer, universes);
+        start();
 
     // Nothing to do
     if (m_parent->duration() == 0)
@@ -325,27 +416,35 @@ void EFXFixture::nextStep(MasterTimer* timer, QList<Universe *> universes)
 
     // Scale from elapsed time in relation to overall duration to a point in a circle
     uint pos = (m_elapsed + timeOffset()) % m_parent->duration();
-    m_currentAngle = m_startAngle + SCALE(qreal(pos),
-                           qreal(0), qreal(m_parent->duration()),
-                           qreal(0), qreal(M_PI * 2));
+    m_currentAngle = SCALE(float(pos),
+                           float(0), float(m_parent->duration()),
+                           float(0), float(M_PI * 2));
 
-    if (m_currentAngle > (M_PI * 2))
-    {
-        m_startAngle = 0;
-        m_currentAngle -= M_PI * 2;
-    }
-
-    qreal pan = 0;
-    qreal tilt = 0;
+    float valX = 0;
+    float valY = 0;
 
     if ((m_parent->propagationMode() == EFX::Serial &&
         m_elapsed < (m_parent->duration() + timeOffset()))
         || m_elapsed < m_parent->duration())
     {
-        m_parent->calculatePoint(m_runTimeDirection, m_startOffset, m_currentAngle, &pan, &tilt);
+        m_parent->calculatePoint(m_runTimeDirection, m_startOffset, m_currentAngle, &valX, &valY);
 
-        /* Write this fixture's data to universes. */
-        setPoint(universes, pan, tilt);
+        /* Prepare faders on universes */
+        switch(m_mode)
+        {
+            case PanTilt:
+                setPointPanTilt(universes, fader, valX, valY);
+            break;
+
+            case RGB:
+                setPointRGB(universes, fader, valX, valY);
+            break;
+
+            case Dimmer:
+                //Use Y for coherence with RGB gradient.
+                setPointDimmer(universes, fader, valY);
+            break;
+        }
     }
     else
     {
@@ -361,132 +460,118 @@ void EFXFixture::nextStep(MasterTimer* timer, QList<Universe *> universes)
         {
             /* De-initialize the fixture and mark as ready. */
             m_ready = true;
-            stop(timer, universes);
+            stop();
         }
 
-        m_elapsed = 0;
+        m_elapsed %= m_parent->duration();
     }
 }
 
-void EFXFixture::setPoint(QList<Universe *> universes, qreal pan, qreal tilt)
+void EFXFixture::updateFaderValues(FadeChannel *fc, uchar value)
+{
+    fc->setStart(fc->current());
+    fc->setTarget(value);
+    fc->setElapsed(0);
+    fc->setReady(false);
+    fc->setFadeTime(0);
+}
+
+void EFXFixture::setPointPanTilt(QList<Universe *> universes, QSharedPointer<GenericFader> fader,
+                                 float pan, float tilt)
 {
     Fixture* fxi = doc()->fixture(head().fxi);
     Q_ASSERT(fxi != NULL);
+    Universe *uni = universes[universe()];
 
     /* Write coarse point data to universes */
-    if (fxi->panMsbChannel(head().head) != QLCChannel::invalid())
+    quint32 panMsbChannel = fxi->channelNumber(QLCChannel::Pan, QLCChannel::MSB, head().head);
+    quint32 panLsbChannel = fxi->channelNumber(QLCChannel::Pan, QLCChannel::LSB, head().head);
+    quint32 tiltMsbChannel = fxi->channelNumber(QLCChannel::Tilt, QLCChannel::MSB, head().head);
+    quint32 tiltLsbChannel = fxi->channelNumber(QLCChannel::Tilt, QLCChannel::LSB, head().head);
+
+    if (panMsbChannel != QLCChannel::invalid() && !fader.isNull())
     {
+        FadeChannel *fc = fader->getChannelFader(doc(), uni, fxi->id(), panMsbChannel);
         if (m_parent->isRelative())
-            universes[fxi->universe()]->writeRelative(fxi->address() + fxi->panMsbChannel(head().head), static_cast<char>(pan));
-        else
-            universes[fxi->universe()]->write(fxi->address() + fxi->panMsbChannel(head().head), static_cast<char>(pan));
+            fc->addFlag(FadeChannel::Relative);
+        updateFaderValues(fc, static_cast<uchar>(pan));
     }
-    if (fxi->tiltMsbChannel(head().head) != QLCChannel::invalid())
+    if (tiltMsbChannel != QLCChannel::invalid() && !fader.isNull())
     {
+        FadeChannel *fc = fader->getChannelFader(doc(), uni, fxi->id(), tiltMsbChannel);
         if (m_parent->isRelative())
-            universes[fxi->universe()]->writeRelative(fxi->address() + fxi->tiltMsbChannel(head().head), static_cast<char> (tilt));
-        else
-            universes[fxi->universe()]->write(fxi->address() + fxi->tiltMsbChannel(head().head), static_cast<char> (tilt));
+            fc->addFlag(FadeChannel::Relative);
+        updateFaderValues(fc, static_cast<uchar>(tilt));
     }
 
     /* Write fine point data to universes if applicable */
-    if (fxi->panLsbChannel(head().head) != QLCChannel::invalid())
+    if (panLsbChannel != QLCChannel::invalid() && !fader.isNull())
     {
         /* Leave only the fraction */
-        char value = static_cast<char> ((pan - floor(pan)) * double(UCHAR_MAX));
+        uchar value = static_cast<uchar> ((pan - floor(pan)) * double(UCHAR_MAX));
+        FadeChannel *fc = fader->getChannelFader(doc(), uni, fxi->id(), panLsbChannel);
         if (m_parent->isRelative())
-            universes[fxi->universe()]->writeRelative(fxi->address() + fxi->panLsbChannel(head().head), value);
-        else
-            universes[fxi->universe()]->write(fxi->address() + fxi->panLsbChannel(head().head), value);
+            fc->addFlag(FadeChannel::Relative);
+        updateFaderValues(fc, static_cast<uchar>(value));
     }
 
-    if (fxi->tiltLsbChannel(head().head) != QLCChannel::invalid())
+    if (tiltLsbChannel != QLCChannel::invalid() && !fader.isNull())
     {
         /* Leave only the fraction */
-        char value = static_cast<char> ((tilt - floor(tilt)) * double(UCHAR_MAX));
+        uchar value = static_cast<uchar> ((tilt - floor(tilt)) * double(UCHAR_MAX));
+        FadeChannel *fc = fader->getChannelFader(doc(), uni, fxi->id(), tiltLsbChannel);
         if (m_parent->isRelative())
-            universes[fxi->universe()]->writeRelative(fxi->address() + fxi->tiltLsbChannel(head().head), value);
-        else
-            universes[fxi->universe()]->write(fxi->address() + fxi->tiltLsbChannel(head().head), value);
+            fc->addFlag(FadeChannel::Relative);
+        updateFaderValues(fc, static_cast<uchar>(value));
     }
 }
 
-void EFXFixture::start(MasterTimer* timer, QList<Universe *> universes)
+void EFXFixture::setPointDimmer(QList<Universe *> universes, QSharedPointer<GenericFader> fader, float dimmer)
 {
-    Q_UNUSED(universes);
-    Q_UNUSED(timer);
+    Fixture *fxi = doc()->fixture(head().fxi);
+    Q_ASSERT(fxi != NULL);
+    Universe *uni = universes[universe()];
 
-    if (fadeIntensity() > 0 && m_started == false)
+    quint32 intChannel = fxi->channelNumber(QLCChannel::Intensity, QLCChannel::MSB, head().head);
+
+    /* Don't write dimmer data directly to universes but use FadeChannel to avoid steps at EFX loop restart */
+    if (intChannel != QLCChannel::invalid())
     {
-        Fixture* fxi = doc()->fixture(head().fxi);
-        Q_ASSERT(fxi != NULL);
-
-        if (fxi->masterIntensityChannel(head().head) != QLCChannel::invalid())
+        if (!fader.isNull())
         {
-            FadeChannel fc;
-            fc.setFixture(doc(), head().fxi);
-            fc.setChannel(fxi->masterIntensityChannel(head().head));
-            if (m_parent->overrideFadeInSpeed() != Function::defaultSpeed())
-                fc.setFadeTime(m_parent->overrideFadeInSpeed());
-            else
-                fc.setFadeTime(m_parent->fadeInSpeed());
-
-            fc.setStart(0);
-            fc.setCurrent(fc.start());
-            // Don't use intensity() multiplier because EFX's GenericFader takes care of that
-            fc.setTarget(fadeIntensity());
-            // Fade channel up with EFX's own GenericFader to allow manual intensity control
-            m_parent->m_fader->add(fc);
+            FadeChannel *fc = fader->getChannelFader(doc(), uni, fxi->id(), intChannel);
+            updateFaderValues(fc, dimmer);
         }
     }
-
-    m_started = true;
-}
-
-void EFXFixture::stop(MasterTimer* timer, QList<Universe *> universes)
-{
-    Q_UNUSED(universes);
-
-    if (fadeIntensity() > 0 && m_started == true)
+    else if (fxi->masterIntensityChannel() != QLCChannel::invalid())
     {
-        Fixture* fxi = doc()->fixture(head().fxi);
-        Q_ASSERT(fxi != NULL);
-
-        if (fxi->masterIntensityChannel(head().head) != QLCChannel::invalid())
+        if (!fader.isNull())
         {
-            FadeChannel fc;
-            fc.setFixture(doc(), head().fxi);
-            fc.setChannel(fxi->masterIntensityChannel(head().head));
-
-            if (m_parent->overrideFadeOutSpeed() != Function::defaultSpeed())
-                fc.setFadeTime(m_parent->overrideFadeOutSpeed());
-            else
-                fc.setFadeTime(m_parent->fadeOutSpeed());
-
-            fc.setStart(uchar(floor((qreal(fadeIntensity()) * intensity()) + 0.5)));
-            fc.setCurrent(fc.start());
-            fc.setTarget(0);
-            // Give zero-fading to MasterTimer because EFX will stop after this call
-            timer->fader()->add(fc);
-            // Remove the previously up-faded channel from EFX's internal fader to allow
-            // MasterTimer's fader take HTP precedence.
-            m_parent->m_fader->remove(fc);
+            FadeChannel *fc = fader->getChannelFader(doc(), uni, fxi->id(), fxi->masterIntensityChannel());
+            updateFaderValues(fc, dimmer);
         }
     }
-
-    m_started = false;
 }
 
-/*****************************************************************************
- * Intensity
- *****************************************************************************/
-
-void EFXFixture::adjustIntensity(qreal fraction)
+void EFXFixture::setPointRGB(QList<Universe *> universes, QSharedPointer<GenericFader> fader, float x, float y)
 {
-    m_intensity = fraction;
+    Fixture* fxi = doc()->fixture(head().fxi);
+    Q_ASSERT(fxi != NULL);
+    Universe *uni = universes[universe()];
+
+    QVector<quint32> rgbChannels = fxi->rgbChannels(head().head);
+
+    /* Don't write dimmer data directly to universes but use FadeChannel to avoid steps at EFX loop restart */
+    if (rgbChannels.size() >= 3 && !fader.isNull())
+    {
+        QColor pixel = m_rgbGradient.pixel(x, y);
+
+        FadeChannel *fc = fader->getChannelFader(doc(), uni, fxi->id(), rgbChannels[0]);
+        updateFaderValues(fc, pixel.red());
+        fc = fader->getChannelFader(doc(), uni, fxi->id(), rgbChannels[1]);
+        updateFaderValues(fc, pixel.green());
+        fc = fader->getChannelFader(doc(), uni, fxi->id(), rgbChannels[2]);
+        updateFaderValues(fc, pixel.blue());
+    }
 }
 
-qreal EFXFixture::intensity() const
-{
-    return m_intensity;
-}

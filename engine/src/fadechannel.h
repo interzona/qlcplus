@@ -42,6 +42,19 @@ class FadeChannel
      * Initialization
      ************************************************************************/
 public:
+    enum ChannelFlag
+    {
+        HTP         = (1 << 0),     /** Highest takes precedence */
+        LTP         = (1 << 1),     /** Latest takes precedence */
+        Intensity   = (1 << 2),     /** Intensity channel (dimmer, RGB, CMY, etc) */
+        CanFade     = (1 << 3),     /** Subject to fade transitions */
+        Flashing    = (1 << 4),     /** Is flashing */
+        Relative    = (1 << 5),     /** Relative position */
+        Override    = (1 << 6),     /** Override the current universe value */
+        Autoremove  = (1 << 7),     /** Automatically remove the channel once value is written */
+        CrossFade   = (1 << 8)      /** Channel subject to crossfade */
+    };
+
     /** Create a new FadeChannel with empty/invalid values */
     FadeChannel();
 
@@ -54,8 +67,26 @@ public:
     /** Destructor */
     virtual ~FadeChannel();
 
+    FadeChannel& operator=(const FadeChannel& fc);
+
     /** Comparison operator (true if fixture & channel match) */
     bool operator==(const FadeChannel& fc) const;
+
+    /** Get/Set the channel flags listed in ChannelFlag */
+    int flags() const;
+    void setFlags(int flags);
+
+    /** Add/Remove a single flag */
+    void addFlag(int flag);
+    void removeFlag(int flag);
+
+protected:
+    void autoDetect(const Doc *doc);
+
+private:
+    /** Bitmask including the channel type
+     *  and, if needed, more flags */
+    int m_flags;
 
     /************************************************************************
      * Values
@@ -68,10 +99,10 @@ public:
     quint32 fixture() const;
 
     /** Get the universe of the Fixture that is being controlled. */
-    quint32 universe();
+    quint32 universe() const;
 
     /** Set channel within the Fixture. */
-    void setChannel(quint32 num);
+    void setChannel(const Doc* doc, quint32 num);
 
     /** Get channel within the Fixture. */
     quint32 channel() const;
@@ -79,8 +110,8 @@ public:
     /** Get the absolute address for this channel. */
     quint32 address() const;
 
-    /** Get the channel group. */
-    QLCChannel::Group group(const Doc* doc) const;
+    /** Get the absolute address in its universe for this channel. */
+    quint32 addressInUniverse() const;
 
     /** Set starting value. */
     void setStart(uchar value);
@@ -110,7 +141,7 @@ public:
     bool isReady() const;
 
     /** Returns if a channel can be faded or not */
-    bool canFade(const Doc *doc) const;
+    bool canFade() const;
 
     /** Set the fade time in milliseconds. */
     void setFadeTime(uint ms);
@@ -158,12 +189,6 @@ private:
     uint m_fadeTime;
     uint m_elapsed;
 };
-
-/**
- * Hash function for FadeChannel. Needs a valid .fixture() and .channel() to work
- * correctly.
- */
-uint qHash(const FadeChannel& key);
 
 /** @} */
 

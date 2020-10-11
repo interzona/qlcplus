@@ -1,8 +1,9 @@
 /*
-  Q Light Controller - Unit test
+  Q Light Controller Plus - Unit test
   efxfixture_test.cpp
 
   Copyright (c) Heikki Junnila
+                Massimo Callegari
 
   Licensed under the Apache License, Version 2.0 (the "License");
   you may not use this file except in compliance with the License.
@@ -18,8 +19,9 @@
 */
 
 #include <QtTest>
-#include <QtXml>
 #include <QList>
+#include <QXmlStreamReader>
+#include <QXmlStreamWriter>
 
 #define protected public
 #define private public
@@ -40,7 +42,7 @@
 #undef private
 #undef protected
 
-#define INTERNAL_FIXTUREDIR "../../../fixtures/"
+#include "../common/resource_paths.h"
 
 void EFXFixture_Test::initTestCase()
 {
@@ -49,19 +51,70 @@ void EFXFixture_Test::initTestCase()
     QDir dir(INTERNAL_FIXTUREDIR);
     dir.setFilter(QDir::Files);
     dir.setNameFilters(QStringList() << QString("*%1").arg(KExtFixture));
-    QVERIFY(m_doc->fixtureDefCache()->load(dir) == true);
+    QVERIFY(m_doc->fixtureDefCache()->loadMap(dir) == true);
 }
 
 void EFXFixture_Test::init()
 {
-    QLCFixtureDef* def = m_doc->fixtureDefCache()->fixtureDef("Futurelight", "MH-440");
-    QVERIFY(def != NULL);
-    QLCFixtureMode* mode = def->modes().first();
-    QVERIFY(mode != NULL);
+    int address = 0;
+    {
+        QLCFixtureDef* def = m_doc->fixtureDefCache()->fixtureDef("Futurelight", "DJScan250");
+        QVERIFY(def != NULL);
+        QLCFixtureMode* mode = def->modes().first();
+        QVERIFY(mode != NULL);
 
-    Fixture* fxi = new Fixture(m_doc);
-    fxi->setFixtureDefinition(def, mode);
-    m_doc->addFixture(fxi);
+        Fixture* fxi = new Fixture(m_doc);
+        fxi->setFixtureDefinition(def, mode);
+        fxi->setAddress(address);
+        m_fixture8bitAddress = address;
+        address += fxi->channels();
+        m_doc->addFixture(fxi);
+        m_fixture8bit = fxi->id();
+    }
+
+    {
+        QLCFixtureDef* def = m_doc->fixtureDefCache()->fixtureDef("Futurelight", "MH-440");
+        QVERIFY(def != NULL);
+        QLCFixtureMode* mode = def->modes().first();
+        QVERIFY(mode != NULL);
+
+        Fixture* fxi = new Fixture(m_doc);
+        fxi->setFixtureDefinition(def, mode);
+        fxi->setAddress(address);
+        m_fixture16bitAddress = address;
+        address += fxi->channels();
+        m_doc->addFixture(fxi);
+        m_fixture16bit = fxi->id();
+    }
+
+    {
+        QLCFixtureDef* def = m_doc->fixtureDefCache()->fixtureDef("Futurelight", "CY-200");
+        QVERIFY(def != NULL);
+        QLCFixtureMode* mode = def->modes().first();
+        QVERIFY(mode != NULL);
+
+        Fixture* fxi = new Fixture(m_doc);
+        fxi->setFixtureDefinition(def, mode);
+        fxi->setAddress(address);
+        m_fixturePanOnlyAddress = address;
+        address += fxi->channels();
+        m_doc->addFixture(fxi);
+        m_fixturePanOnly = fxi->id();
+    }
+
+    {
+        QLCFixtureDef* def = m_doc->fixtureDefCache()->fixtureDef("American DJ", "Sweeper Beam Quad LED");
+        QVERIFY(def != NULL);
+        QLCFixtureMode* mode = def->modes().last(); // 39 Channel mode
+        QVERIFY(mode != NULL);
+
+        Fixture* fxi = new Fixture(m_doc);
+        fxi->setFixtureDefinition(def, mode);
+        fxi->setAddress(address);
+        m_fixtureLedBarAddress = address;
+        m_doc->addFixture(fxi);
+        m_fixtureLedBar = fxi->id();
+    }
 }
 
 void EFXFixture_Test::cleanupTestCase()
@@ -83,15 +136,12 @@ void EFXFixture_Test::initial()
     QVERIFY(ef.head().head == -1);
     QVERIFY(ef.direction() == EFX::Forward);
     QVERIFY(ef.serialNumber() == 0);
-    QVERIFY(ef.fadeIntensity() == uchar(255));
     QVERIFY(ef.isValid() == false);
     QVERIFY(ef.isReady() == false);
 
     QVERIFY(ef.m_runTimeDirection == EFX::Forward);
     QVERIFY(ef.m_ready == false);
     QVERIFY(ef.m_elapsed == 0);
-
-    QVERIFY(ef.m_intensity == 1.0);
 }
 
 void EFXFixture_Test::copyFrom()
@@ -106,8 +156,6 @@ void EFXFixture_Test::copyFrom()
     ef.m_runTimeDirection = EFX::Backward;
     ef.m_ready = true;
     ef.m_elapsed = 31337;
-    ef.m_intensity = 0.314159;
-    ef.m_fadeIntensity = 125;
 
     EFXFixture copy(&e);
     copy.copyFrom(&ef);
@@ -118,8 +166,6 @@ void EFXFixture_Test::copyFrom()
     QVERIFY(copy.m_runTimeDirection == EFX::Backward);
     QVERIFY(copy.m_ready == true);
     QVERIFY(copy.m_elapsed == 31337);
-    QVERIFY(copy.m_intensity == 0.314159);
-    QVERIFY(copy.m_fadeIntensity == 125);
 }
 
 void EFXFixture_Test::publicProperties()
@@ -141,116 +187,111 @@ void EFXFixture_Test::publicProperties()
     ef.setDirection(EFX::Forward);
     QVERIFY(ef.direction() == EFX::Forward);
     QVERIFY(ef.m_runTimeDirection == EFX::Forward);
-
-    ef.setFadeIntensity(69);
-    QVERIFY(ef.fadeIntensity() == 69);
 }
 
 void EFXFixture_Test::loadSuccess()
 {
-    QDomDocument doc;
+    QBuffer buffer;
+    buffer.open(QIODevice::WriteOnly | QIODevice::Text);
+    QXmlStreamWriter xmlWriter(&buffer);
 
-    QDomElement root = doc.createElement("Fixture");
+    xmlWriter.writeStartElement("Fixture");
 
-    QDomElement id = doc.createElement("ID");
-    QDomText idText = doc.createTextNode("83");
-    id.appendChild(idText);
-    root.appendChild(id);
+    xmlWriter.writeTextElement("ID", "83");
+    xmlWriter.writeTextElement("Head", "76");
+    xmlWriter.writeTextElement("Direction", "Backward");
 
-    QDomElement head = doc.createElement("Head");
-    QDomText headText = doc.createTextNode("76");
-    head.appendChild(headText);
-    root.appendChild(head);
+    xmlWriter.writeEndDocument();
+    xmlWriter.setDevice(NULL);
+    buffer.close();
 
-    QDomElement dir = doc.createElement("Direction");
-    QDomText dirText = doc.createTextNode("Backward");
-    dir.appendChild(dirText);
-    root.appendChild(dir);
-
-    QDomElement in = doc.createElement("Intensity");
-    QDomText inText = doc.createTextNode("91");
-    in.appendChild(inText);
-    root.appendChild(in);
+    buffer.open(QIODevice::ReadOnly | QIODevice::Text);
+    QXmlStreamReader xmlReader(&buffer);
+    xmlReader.readNextStartElement();
 
     EFX e(m_doc);
     EFXFixture ef(&e);
-    QVERIFY(ef.loadXML(root) == true);
+    QVERIFY(ef.loadXML(xmlReader) == true);
     QVERIFY(ef.head().fxi == 83);
     QVERIFY(ef.head().head == 76);
     QVERIFY(ef.direction() == EFX::Backward);
-    QVERIFY(ef.fadeIntensity() == 91);
 }
 
 void EFXFixture_Test::loadWrongRoot()
 {
-    QDomDocument doc;
+    QBuffer buffer;
+    buffer.open(QIODevice::WriteOnly | QIODevice::Text);
+    QXmlStreamWriter xmlWriter(&buffer);
 
-    QDomElement root = doc.createElement("EFXFixture");
+    xmlWriter.writeStartElement("EFXFixture");
 
-    QDomElement id = doc.createElement("ID");
-    QDomText idText = doc.createTextNode("189");
-    id.appendChild(idText);
-    root.appendChild(id);
+    xmlWriter.writeTextElement("ID", "189");
+    xmlWriter.writeTextElement("Direction", "Backward");
 
-    QDomElement dir = doc.createElement("Direction");
-    QDomText dirText = doc.createTextNode("Backward");
-    dir.appendChild(dirText);
-    root.appendChild(dir);
+    xmlWriter.writeEndDocument();
+    xmlWriter.setDevice(NULL);
+    buffer.close();
+
+    buffer.open(QIODevice::ReadOnly | QIODevice::Text);
+    QXmlStreamReader xmlReader(&buffer);
+    xmlReader.readNextStartElement();
 
     EFX e(m_doc);
     EFXFixture ef(&e);
-    QVERIFY(ef.loadXML(root) == false);
+    QVERIFY(ef.loadXML(xmlReader) == false);
     QVERIFY(!ef.head().isValid());
     QVERIFY(ef.direction() == EFX::Forward);
 }
 
 void EFXFixture_Test::loadWrongDirection()
 {
-    QDomDocument doc;
+    QBuffer buffer;
+    buffer.open(QIODevice::WriteOnly | QIODevice::Text);
+    QXmlStreamWriter xmlWriter(&buffer);
 
-    QDomElement root = doc.createElement("Fixture");
+    xmlWriter.writeStartElement("Fixture");
 
-    QDomElement id = doc.createElement("ID");
-    QDomText idText = doc.createTextNode("97");
-    id.appendChild(idText);
-    root.appendChild(id);
+    xmlWriter.writeTextElement("ID", "97");
+    xmlWriter.writeTextElement("Direction", "Phorrwarrd");
 
-    QDomElement dir = doc.createElement("Direction");
-    QDomText dirText = doc.createTextNode("Phorrwarrd");
-    dir.appendChild(dirText);
-    root.appendChild(dir);
+    xmlWriter.writeEndDocument();
+    xmlWriter.setDevice(NULL);
+    buffer.close();
+
+    buffer.open(QIODevice::ReadOnly | QIODevice::Text);
+    QXmlStreamReader xmlReader(&buffer);
+    xmlReader.readNextStartElement();
 
     EFX e(m_doc);
     EFXFixture ef(&e);
-    QVERIFY(ef.loadXML(root) == true);
+    QVERIFY(ef.loadXML(xmlReader) == true);
     QVERIFY(ef.head().fxi == 97);
     QVERIFY(ef.direction() == EFX::Forward);
 }
 
 void EFXFixture_Test::loadExtraTag()
 {
-    QDomDocument doc;
+    QBuffer buffer;
+    buffer.open(QIODevice::WriteOnly | QIODevice::Text);
+    QXmlStreamWriter xmlWriter(&buffer);
 
-    QDomElement root = doc.createElement("Fixture");
+    xmlWriter.writeStartElement("Fixture");
 
-    QDomElement id = doc.createElement("ID");
-    QDomText idText = doc.createTextNode("108");
-    id.appendChild(idText);
-    root.appendChild(id);
+    xmlWriter.writeTextElement("ID", "108");
+    xmlWriter.writeTextElement("Direction", "Forward");
+    xmlWriter.writeTextElement("Foobar", "Just testing");
 
-    QDomElement dir = doc.createElement("Direction");
-    QDomText dirText = doc.createTextNode("Forward");
-    dir.appendChild(dirText);
-    root.appendChild(dir);
+    xmlWriter.writeEndDocument();
+    xmlWriter.setDevice(NULL);
+    buffer.close();
 
-    QDomElement foo = doc.createElement("Foobar");
-    QDomText fooText = doc.createTextNode("Just testing");
-    foo.appendChild(fooText);
-    root.appendChild(foo);
+    buffer.open(QIODevice::ReadOnly | QIODevice::Text);
+    QXmlStreamReader xmlReader(&buffer);
+    xmlReader.readNextStartElement();
 
     EFX e(m_doc);
     EFXFixture ef(&e);
-    QVERIFY(ef.loadXML(root) == true);
+    QVERIFY(ef.loadXML(xmlReader) == true);
     QVERIFY(ef.head().fxi == 108);
     QVERIFY(ef.direction() == EFX::Forward);
 }
@@ -262,25 +303,40 @@ void EFXFixture_Test::save()
     ef.setHead(GroupHead(56, 7));
     ef.setDirection(EFX::Backward);
 
-    QDomDocument doc;
-    QDomElement root = doc.createElement("EFX");
+    QBuffer buffer;
+    buffer.open(QIODevice::WriteOnly | QIODevice::Text);
+    QXmlStreamWriter xmlWriter(&buffer);
 
-    QVERIFY(ef.saveXML(&doc, &root) == true);
+    xmlWriter.writeStartElement("EFX");
 
-    QDomElement tag = root.firstChild().toElement();
-    QVERIFY(tag.tagName() == "Fixture");
+    QVERIFY(ef.saveXML(&xmlWriter) == true);
 
-    tag = tag.firstChild().toElement();
-    QVERIFY(tag.tagName() == "ID");
-    QVERIFY(tag.text() == "56");
+    xmlWriter.setDevice(NULL);
+    buffer.close();
 
-    tag = tag.nextSibling().toElement();
-    QVERIFY(tag.tagName() == "Head");
-    QVERIFY(tag.text() == "7");
+    buffer.open(QIODevice::ReadOnly | QIODevice::Text);
+    QXmlStreamReader xmlReader(&buffer);
+    xmlReader.readNextStartElement();
+    QVERIFY(xmlReader.name().toString() == "EFX");
 
-    tag = tag.nextSibling().toElement();
-    QVERIFY(tag.tagName() == "Direction");
-    QVERIFY(tag.text() == "Backward");
+    xmlReader.readNextStartElement();
+    QVERIFY(xmlReader.name().toString() == "Fixture");
+
+    xmlReader.readNextStartElement();
+    QVERIFY(xmlReader.name().toString() == "ID");
+    QVERIFY(xmlReader.readElementText() == "56");
+
+    xmlReader.readNextStartElement();
+    QVERIFY(xmlReader.name().toString() == "Head");
+    QVERIFY(xmlReader.readElementText() == "7");
+
+    xmlReader.readNextStartElement();
+    QVERIFY(xmlReader.name().toString() == "Mode");
+    QVERIFY(xmlReader.readElementText() == "0");
+
+    xmlReader.readNextStartElement();
+    QVERIFY(xmlReader.name().toString() == "Direction");
+    QVERIFY(xmlReader.readElementText() == "Backward");
 }
 
 void EFXFixture_Test::serialNumber()
@@ -390,49 +446,88 @@ void EFXFixture_Test::startOffset()
 
 void EFXFixture_Test::setPoint8bit()
 {
-    QLCFixtureDef* def = m_doc->fixtureDefCache()->fixtureDef("Futurelight", "DJScan250");
-    QVERIFY(def != NULL);
-    QLCFixtureMode* mode = def->modes().first();
-    QVERIFY(mode != NULL);
-
-    Fixture* fxi = new Fixture(m_doc);
-    fxi->setFixtureDefinition(def, mode);
-    m_doc->addFixture(fxi);
-
     EFX e(m_doc);
     EFXFixture ef(&e);
-    ef.setHead(GroupHead(fxi->id(),0));
+    ef.setHead(GroupHead(m_fixture8bit, 0));
 
-    QList<Universe*> ua;
-    ua.append(new Universe(0, new GrandMaster()));
-    ef.setPoint(ua, 5.4, 1.5); // PMSB: 5, PLSB: 0.4, TMSB: 1 (102), TLSB: 0.5(127)
-    QVERIFY(ua[0]->preGMValues()[0] == (char) 5);
-    QVERIFY(ua[0]->preGMValues()[1] == (char) 1);
-    QVERIFY(ua[0]->preGMValues()[2] == (char) 0); /* No LSB channels */
-    QVERIFY(ua[0]->preGMValues()[3] == (char) 0); /* No LSB channels */
+    QList<Universe*> ua = m_doc->inputOutputMap()->universes();
+    Universe *universe = ua[0];
+    QSharedPointer<GenericFader> fader = universe->requestFader();
 
-    m_doc->deleteFixture(fxi->id());
+    ef.setPointPanTilt(ua, fader, 5.4, 1.5); // PMSB: 5, PLSB: 0.4, TMSB: 1 (102), TLSB: 0.5(127)
+    QCOMPARE(fader->channels().count(), 2);
+    universe->processFaders();
+
+    QCOMPARE((int)universe->preGMValues()[m_fixture8bitAddress + 0], 5);
+    QCOMPARE((int)universe->preGMValues()[m_fixture8bitAddress + 1], 1);
+    QCOMPARE((int)universe->preGMValues()[m_fixture8bitAddress + 2], 0); /* No LSB channels */
+    QCOMPARE((int)universe->preGMValues()[m_fixture8bitAddress + 3], 0); /* No LSB channels */
 }
 
 void EFXFixture_Test::setPoint16bit()
 {
     EFX e(m_doc);
     EFXFixture ef(&e);
-    ef.setHead(GroupHead(0,0));
+    ef.setHead(GroupHead(m_fixture16bit, 0));
 
-    QList<Universe*> ua;
-    ua.append(new Universe(0, new GrandMaster()));
-    ef.setPoint(ua, 5.4, 1.5); // PMSB: 5, PLSB: 0.4, TMSB: 1 (102), TLSB: 0.5(127)
-    QVERIFY(ua[0]->preGMValues()[0] == (char) 5);
-    QVERIFY(ua[0]->preGMValues()[1] == (char) 1);
-    QVERIFY(ua[0]->preGMValues()[2] == (char) 102); /* 255 * 0.4 */
-    QVERIFY(ua[0]->preGMValues()[3] == (char) 127); /* 255 * 0.5 */
+    QList<Universe*> ua = m_doc->inputOutputMap()->universes();
+    Universe *universe = ua[0];
+    QSharedPointer<GenericFader> fader = universe->requestFader();
+
+    ef.setPointPanTilt(ua, fader, 5.4, 1.5); // PMSB: 5, PLSB: 0.4, TMSB: 1 (102), TLSB: 0.5(127)
+    QCOMPARE(fader->channels().count(), 4);
+    universe->processFaders();
+    QCOMPARE((int)universe->preGMValues()[m_fixture16bitAddress + 0], 5);
+    QCOMPARE((int)universe->preGMValues()[m_fixture16bitAddress + 1], 1);
+    QCOMPARE((int)universe->preGMValues()[m_fixture16bitAddress + 2], 102); /* 255 * 0.4 */
+    QCOMPARE((int)universe->preGMValues()[m_fixture16bitAddress + 3], 127); /* 255 * 0.5 */
 }
+
+void EFXFixture_Test::setPointPanOnly()
+{
+    EFX e(m_doc);
+    EFXFixture ef(&e);
+    ef.setHead(GroupHead(m_fixturePanOnly, 0));
+
+    QList<Universe*> ua = m_doc->inputOutputMap()->universes();
+    Universe *universe = ua[0];
+    QSharedPointer<GenericFader> fader = universe->requestFader();
+
+    ef.setPointPanTilt(ua, fader, 5.4, 1.5); // PMSB: 5, PLSB: 0.4, TMSB: 1 (102), TLSB: 0.5(127)
+    QCOMPARE(fader->channels().count(), 1);
+    universe->processFaders();
+    QCOMPARE((int)universe->preGMValues()[m_fixturePanOnlyAddress + 0], 5); /* Pan */
+    QCOMPARE((int)universe->preGMValues()[m_fixturePanOnlyAddress + 1], 0);
+    QCOMPARE((int)universe->preGMValues()[m_fixturePanOnlyAddress + 2], 0);
+    QCOMPARE((int)universe->preGMValues()[m_fixturePanOnlyAddress + 3], 0);
+}
+
+void EFXFixture_Test::setPointLedBar()
+{
+    EFX e(m_doc);
+    EFXFixture ef(&e);
+    ef.setHead(GroupHead(m_fixtureLedBar, 0));
+
+    QList<Universe*> ua = m_doc->inputOutputMap()->universes();
+    Universe *universe = ua[0];
+    QSharedPointer<GenericFader> fader = universe->requestFader();
+
+    ef.setPointPanTilt(ua, fader, 5.4, 1.5); // PMSB: 5, PLSB: 0.4, TMSB: 1 (102), TLSB: 0.5(127)
+    QCOMPARE(fader->channels().count(), 1);
+    universe->processFaders();
+
+    QCOMPARE((int)universe->preGMValues()[m_fixtureLedBarAddress + 0], 1); /* Tilt */
+    QCOMPARE((int)universe->preGMValues()[m_fixtureLedBarAddress + 1], 0);
+    QCOMPARE((int)universe->preGMValues()[m_fixtureLedBarAddress + 2], 0);
+    QCOMPARE((int)universe->preGMValues()[m_fixtureLedBarAddress + 3], 0);
+}
+
 
 void EFXFixture_Test::nextStepLoop()
 {
-    QList<Universe*> ua;
-    ua.append(new Universe(0, new GrandMaster()));
+    QList<Universe*> ua = m_doc->inputOutputMap()->universes();
+    Universe *universe = ua[0];
+    QSharedPointer<GenericFader> fader = universe->requestFader();
     MasterTimerStub mts(m_doc, ua);
 
     EFX e(m_doc);
@@ -442,7 +537,7 @@ void EFXFixture_Test::nextStepLoop()
     ef->setHead(GroupHead(0,0));
     e.addFixture(ef);
 
-    /* Initialize the EFXFixture so that it can do math */
+    /* Initialize the EFXFixture so that it can do the math */
     ef->setSerialNumber(0);
     QVERIFY(ef->isValid() == true);
     QVERIFY(ef->isReady() == false);
@@ -457,7 +552,7 @@ void EFXFixture_Test::nextStepLoop()
     {
         for (; i < max; i += MasterTimer::tick())
         {
-            ef->nextStep(&mts, ua);
+            ef->nextStep(ua, fader);
             QVERIFY(ef->isReady() == false); // Loop is never ready
             QCOMPARE(ef->m_elapsed, i);
         }
@@ -470,8 +565,9 @@ void EFXFixture_Test::nextStepLoop()
 
 void EFXFixture_Test::nextStepLoopZeroDuration()
 {
-    QList<Universe*> ua;
-    ua.append(new Universe(0, new GrandMaster()));
+    QList<Universe*> ua = m_doc->inputOutputMap()->universes();
+    Universe *universe = ua[0];
+    QSharedPointer<GenericFader> fader = universe->requestFader();
     MasterTimerStub mts(m_doc, ua);
 
     EFX e(m_doc);
@@ -496,7 +592,7 @@ void EFXFixture_Test::nextStepLoopZeroDuration()
     {
         for (; i < max; i += MasterTimer::tick())
         {
-            ef->nextStep(&mts, ua);
+            ef->nextStep(ua, fader);
             QVERIFY(ef->isReady() == false); // Loop is never ready
             QCOMPARE(ef->m_elapsed, i);
         }
@@ -509,8 +605,9 @@ void EFXFixture_Test::nextStepLoopZeroDuration()
 
 void EFXFixture_Test::nextStepSingleShot()
 {
-    QList<Universe*> ua;
-    ua.append(new Universe(0, new GrandMaster()));
+    QList<Universe*> ua = m_doc->inputOutputMap()->universes();
+    Universe *universe = ua[0];
+    QSharedPointer<GenericFader> fader = universe->requestFader();
     MasterTimerStub mts(m_doc, ua);
 
     EFX e(m_doc);
@@ -535,97 +632,15 @@ void EFXFixture_Test::nextStepSingleShot()
     uint max = MasterTimer::tick() * MasterTimer::frequency();
     for (uint i = MasterTimer::tick(); i < max; i += MasterTimer::tick())
     {
-        ef->nextStep(&mts, ua);
+        ef->nextStep(ua, fader);
         QVERIFY(ef->isReady() == false);
         QCOMPARE(ef->m_elapsed, i);
     }
 
-    ef->nextStep(&mts, ua);
+    ef->nextStep(ua, fader);
 
     /* Single-shot EFX should now be ready */
     QVERIFY(ef->isReady() == true);
-
-    e.postRun(&mts, ua);
-}
-
-void EFXFixture_Test::start()
-{
-    QList<Universe*> ua;
-    ua.append(new Universe(0, new GrandMaster()));
-    MasterTimerStub mts(m_doc, ua);
-
-    EFX e(m_doc);
-    e.setFadeInSpeed(1000);
-    e.setFadeOutSpeed(2000);
-    EFXFixture* ef = new EFXFixture(&e);
-    ef->setHead(GroupHead(0,0));
-    e.addFixture(ef);
-
-    Fixture* fxi = m_doc->fixture(0);
-    QVERIFY(fxi != NULL);
-
-    e.preRun(&mts);
-
-    // Fade intensity == 0, no need to do fade-in
-    ef->setFadeIntensity(0);
-    ef->start(&mts, ua);
-    QCOMPARE(e.m_fader->m_channels.size(), 0);
-    ef->m_started = false;
-
-    // Fade intensity > 0, need to do fade-in
-    ef->setFadeIntensity(1);
-    ef->start(&mts, ua);
-    QCOMPARE(e.m_fader->m_channels.size(), 1);
-
-    FadeChannel fc;
-    fc.setFixture(m_doc, fxi->id());
-    fc.setChannel(fxi->masterIntensityChannel());
-    QVERIFY(e.m_fader->m_channels.contains(fc) == true);
-    QCOMPARE(e.m_fader->m_channels[fc].fadeTime(), uint(1000));
-
-    e.postRun(&mts, ua);
-}
-
-void EFXFixture_Test::stop()
-{
-    QList<Universe*> ua;
-    ua.append(new Universe(0, new GrandMaster()));
-    MasterTimerStub mts(m_doc, ua);
-
-    EFX e(m_doc);
-    e.setFadeInSpeed(1000);
-    e.setFadeOutSpeed(2000);
-    EFXFixture* ef = new EFXFixture(&e);
-    ef->setHead(GroupHead(0,0));
-    e.addFixture(ef);
-
-    Fixture* fxi = m_doc->fixture(0);
-    QVERIFY(fxi != NULL);
-
-    e.preRun(&mts);
-
-    // Not started yet
-    ef->stop(&mts, ua);
-    QCOMPARE(e.m_fader->m_channels.size(), 0);
-    QCOMPARE(mts.fader()->m_channels.size(), 0);
-
-    // Start
-    ef->start(&mts, ua);
-    QCOMPARE(e.m_fader->m_channels.size(), 1);
-    FadeChannel fc;
-    fc.setFixture(m_doc, fxi->id());
-    fc.setChannel(fxi->masterIntensityChannel());
-    QVERIFY(e.m_fader->m_channels.contains(fc) == true);
-
-    // Then stop
-    ef->stop(&mts, ua);
-    QCOMPARE(e.m_fader->m_channels.size(), 0);
-
-    // FadeChannels are handed over to MasterTimer's GenericFader
-    QCOMPARE(mts.fader()->m_channels.size(), 1);
-    QVERIFY(e.m_fader->m_channels.contains(fc) == false);
-    QVERIFY(mts.m_fader->m_channels.contains(fc) == true);
-    QCOMPARE(mts.m_fader->m_channels[fc].fadeTime(), uint(2000));
 
     e.postRun(&mts, ua);
 }

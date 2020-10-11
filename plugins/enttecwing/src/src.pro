@@ -22,19 +22,19 @@ win32 {
 }
 
 # Input
+HEADERS += ../../interfaces/qlcioplugin.h
 HEADERS += enttecwing.h \
            playbackwing.h \
            shortcutwing.h \
            programwing.h \
            wing.h
 
+SOURCES += ../../interfaces/qlcioplugin.cpp
 SOURCES += enttecwing.cpp \
            playbackwing.cpp \
            shortcutwing.cpp \
            programwing.cpp \
            wing.cpp
-
-HEADERS += ../../interfaces/qlcioplugin.h
 
 TRANSLATIONS += ENTTEC_Wing_fi_FI.ts
 TRANSLATIONS += ENTTEC_Wing_de_DE.ts
@@ -43,13 +43,22 @@ TRANSLATIONS += ENTTEC_Wing_fr_FR.ts
 TRANSLATIONS += ENTTEC_Wing_it_IT.ts
 TRANSLATIONS += ENTTEC_Wing_nl_NL.ts
 TRANSLATIONS += ENTTEC_Wing_cz_CZ.ts
+TRANSLATIONS += ENTTEC_Wing_pt_BR.ts
+TRANSLATIONS += ENTTEC_Wing_ca_ES.ts
+TRANSLATIONS += ENTTEC_Wing_ja_JP.ts
 
 # This must be after "TARGET = " and before target installation so that
 # install_name_tool can be run before target installation
 macx {
-    include(../../../macx/nametool.pri)
+    include(../../../platforms/macos/nametool.pri)
 }
 
 # Installation
 target.path = $$INSTALLROOT/$$PLUGINDIR
 INSTALLS   += target
+
+unix:!macx {
+   metainfo.path   = $$METAINFODIR
+   metainfo.files += org.qlcplus.QLCPlus.enttecwing.metainfo.xml
+   INSTALLS       += metainfo
+}

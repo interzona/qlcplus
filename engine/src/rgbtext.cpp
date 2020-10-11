@@ -1,8 +1,9 @@
 /*
-  Q Light Controller
+  Q Light Controller Plus
   rgbtext.cpp
 
   Copyright (c) Heikki Junnila
+                Massimo Callegari
 
   Licensed under the Apache License, Version 2.0 (the "License");
   you may not use this file except in compliance with the License.
@@ -17,8 +18,8 @@
   limitations under the License.
 */
 
-#include <QDomDocument>
-#include <QDomElement>
+#include <QXmlStreamReader>
+#include <QXmlStreamWriter>
 #include <QPainter>
 #include <QImage>
 #include <QDebug>
@@ -32,9 +33,9 @@
 #define KXMLQLCRGBTextOffsetX        "X"
 #define KXMLQLCRGBTextOffsetY        "Y"
 
-RGBText::RGBText(const Doc * doc)
+RGBText::RGBText(Doc * doc)
     : RGBAlgorithm(doc)
-    , m_text(" Q LIGHT CONTROLLER ")
+    , m_text(" Q LIGHT CONTROLLER + ")
     , m_animationStyle(Horizontal)
     , m_xOffset(0)
     , m_yOffset(0)
@@ -160,11 +161,16 @@ int RGBText::scrollingTextStepCount() const
     QFontMetrics fm(m_font);
     if (animationStyle() == Vertical)
         return m_text.length() * fm.ascent();
-    else
+    else{
+#if (QT_VERSION < QT_VERSION_CHECK(5, 11, 0))
         return fm.width(m_text);
+#else
+        return fm.horizontalAdvance(m_text);
+#endif
+    }
 }
 
-RGBMap RGBText::renderScrollingText(const QSize& size, uint rgb, int step) const
+void RGBText::renderScrollingText(const QSize& size, uint rgb, int step, RGBMap &map) const
 {
     QImage image;
     if (animationStyle() == Horizontal)
@@ -202,7 +208,7 @@ RGBMap RGBText::renderScrollingText(const QSize& size, uint rgb, int step) const
 
     // Treat the RGBMap as a "window" on top of the fully-drawn text and pick the
     // correct pixels according to $step.
-    RGBMap map(size.height());
+    map.resize(size.height());
     for (int y = 0; y < size.height(); y++)
     {
         map[y].resize(size.width());
@@ -220,11 +226,9 @@ RGBMap RGBText::renderScrollingText(const QSize& size, uint rgb, int step) const
             }
         }
     }
-
-    return map;
 }
 
-RGBMap RGBText::renderStaticLetters(const QSize& size, uint rgb, int step) const
+void RGBText::renderStaticLetters(const QSize& size, uint rgb, int step, RGBMap &map) const
 {
     QImage image(size, QImage::Format_RGB32);
     image.fill(QRgb(0));
@@ -233,22 +237,20 @@ RGBMap RGBText::renderStaticLetters(const QSize& size, uint rgb, int step) const
     p.setRenderHint(QPainter::TextAntialiasing, false);
     p.setRenderHint(QPainter::Antialiasing, false);
     p.setFont(m_font);
-
     p.setPen(QColor(rgb));
+
     // Draw one letter at a time
     QRect rect(xOffset(), yOffset(), size.width(), size.height());
     p.drawText(rect, Qt::AlignCenter, m_text.mid(step, 1));
     p.end();
 
-    RGBMap map(size.height());
+    map.resize(size.height());
     for (int y = 0; y < size.height(); y++)
     {
         map[y].resize(size.width());
         for (int x = 0; x < size.width(); x++)
             map[y][x] = image.pixel(x, y);
     }
-
-    return map;
 }
 
 /****************************************************************************
@@ -264,12 +266,12 @@ int RGBText::rgbMapStepCount(const QSize& size)
         return scrollingTextStepCount();
 }
 
-RGBMap RGBText::rgbMap(const QSize& size, uint rgb, int step)
+void RGBText::rgbMap(const QSize& size, uint rgb, int step, RGBMap &map)
 {
     if (animationStyle() == StaticLetters)
-        return renderStaticLetters(size, rgb, step);
+        renderStaticLetters(size, rgb, step, map);
     else
-        return renderScrollingText(size, rgb, step);
+        renderScrollingText(size, rgb, step, map);
 }
 
 QString RGBText::name() const
@@ -292,47 +294,52 @@ RGBAlgorithm::Type RGBText::type() const
     return RGBAlgorithm::Text;
 }
 
-bool RGBText::loadXML(const QDomElement& root)
+int RGBText::acceptColors() const
 {
-    if (root.tagName() != KXMLQLCRGBAlgorithm)
+    return 2; // start and end colors accepted
+}
+
+bool RGBText::loadXML(QXmlStreamReader &root)
+{
+    if (root.name() != KXMLQLCRGBAlgorithm)
     {
         qWarning() << Q_FUNC_INFO << "RGB Algorithm node not found";
         return false;
     }
 
-    if (root.attribute(KXMLQLCRGBAlgorithmType) != KXMLQLCRGBText)
+    if (root.attributes().value(KXMLQLCRGBAlgorithmType).toString() != KXMLQLCRGBText)
     {
         qWarning() << Q_FUNC_INFO << "RGB Algorithm is not Text";
         return false;
     }
 
-    QDomNode node = root.firstChild();
-    while (node.isNull() == false)
+    while (root.readNextStartElement())
     {
-        QDomElement tag = node.toElement();
-        if (tag.tagName() == KXMLQLCRGBTextContent)
+        if (root.name() == KXMLQLCRGBTextContent)
         {
-            setText(tag.text());
+            setText(root.readElementText());
         }
-        else if (tag.tagName() == KXMLQLCRGBTextFont)
+        else if (root.name() == KXMLQLCRGBTextFont)
         {
             QFont font;
-            if (font.fromString(tag.text()) == true)
+            QString fontName = root.readElementText();
+            if (font.fromString(fontName) == true)
                 setFont(font);
             else
-                qWarning() << Q_FUNC_INFO << "Invalid font:" << tag.text();
+                qWarning() << Q_FUNC_INFO << "Invalid font:" << fontName;
         }
-        else if (tag.tagName() == KXMLQLCRGBTextAnimationStyle)
+        else if (root.name() == KXMLQLCRGBTextAnimationStyle)
         {
-            setAnimationStyle(stringToAnimationStyle(tag.text()));
+            setAnimationStyle(stringToAnimationStyle(root.readElementText()));
         }
-        else if (tag.tagName() == KXMLQLCRGBTextOffset)
+        else if (root.name() == KXMLQLCRGBTextOffset)
         {
             QString str;
             int value;
             bool ok;
+            QXmlStreamAttributes attrs = root.attributes();
 
-            str = tag.attribute(KXMLQLCRGBTextOffsetX);
+            str = attrs.value(KXMLQLCRGBTextOffsetX).toString();
             ok = false;
             value = str.toInt(&ok);
             if (ok == true)
@@ -340,53 +347,45 @@ bool RGBText::loadXML(const QDomElement& root)
             else
                 qWarning() << Q_FUNC_INFO << "Invalid X offset:" << str;
 
-            str = tag.attribute(KXMLQLCRGBTextOffsetY);
+            str = attrs.value(KXMLQLCRGBTextOffsetY).toString();
             ok = false;
             value = str.toInt(&ok);
             if (ok == true)
                 setYOffset(value);
             else
                 qWarning() << Q_FUNC_INFO << "Invalid Y offset:" << str;
+            root.skipCurrentElement();
         }
         else
         {
-            qWarning() << Q_FUNC_INFO << "Unknown RGBText tag:" << tag.tagName();
+            qWarning() << Q_FUNC_INFO << "Unknown RGBText tag:" << root.name();
+            root.skipCurrentElement();
         }
-
-        node = node.nextSibling();
     }
 
     return true;
 }
 
-bool RGBText::saveXML(QDomDocument* doc, QDomElement* mtx_root) const
+bool RGBText::saveXML(QXmlStreamWriter *doc) const
 {
     Q_ASSERT(doc != NULL);
-    Q_ASSERT(mtx_root != NULL);
 
-    QDomElement root = doc->createElement(KXMLQLCRGBAlgorithm);
-    root.setAttribute(KXMLQLCRGBAlgorithmType, KXMLQLCRGBText);
-    mtx_root->appendChild(root);
+    doc->writeStartElement(KXMLQLCRGBAlgorithm);
+    doc->writeAttribute(KXMLQLCRGBAlgorithmType, KXMLQLCRGBText);
 
-    QDomElement content = doc->createElement(KXMLQLCRGBTextContent);
-    QDomText contentText = doc->createTextNode(m_text);
-    content.appendChild(contentText);
-    root.appendChild(content);
+    doc->writeTextElement(KXMLQLCRGBTextContent, m_text);
 
-    QDomElement font = doc->createElement(KXMLQLCRGBTextFont);
-    QDomText fontText = doc->createTextNode(m_font.toString());
-    font.appendChild(fontText);
-    root.appendChild(font);
+    doc->writeTextElement(KXMLQLCRGBTextFont, m_font.toString());
 
-    QDomElement ani = doc->createElement(KXMLQLCRGBTextAnimationStyle);
-    QDomText aniText = doc->createTextNode(animationStyleToString(animationStyle()));
-    ani.appendChild(aniText);
-    root.appendChild(ani);
+    doc->writeTextElement(KXMLQLCRGBTextAnimationStyle, animationStyleToString(animationStyle()));
 
-    QDomElement offset = doc->createElement(KXMLQLCRGBTextOffset);
-    offset.setAttribute(KXMLQLCRGBTextOffsetX, xOffset());
-    offset.setAttribute(KXMLQLCRGBTextOffsetY, yOffset());
-    root.appendChild(offset);
+    doc->writeStartElement(KXMLQLCRGBTextOffset);
+    doc->writeAttribute(KXMLQLCRGBTextOffsetX, QString::number(xOffset()));
+    doc->writeAttribute(KXMLQLCRGBTextOffsetY, QString::number(yOffset()));
+    doc->writeEndElement();
+
+    /* End the <Algorithm> tag */
+    doc->writeEndElement();
 
     return true;
 }

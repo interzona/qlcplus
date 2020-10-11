@@ -28,7 +28,12 @@
 class QLCFixtureMode;
 class QLCFixtureHead;
 class QLCFixtureDef;
+class EditPhysical;
 class QLCChannel;
+
+/** @addtogroup fixtureeditor Fixture Editor
+ * @{
+ */
 
 class EditMode : public QDialog, public Ui_EditMode
 {
@@ -36,10 +41,10 @@ class EditMode : public QDialog, public Ui_EditMode
 
 public:
     /** Use this constructor to edit an existing mode */
-    EditMode(QWidget* parent, QLCFixtureMode* mode);
+    EditMode(QWidget *parent, QLCFixtureMode *mode);
 
     /** Use this constructor to create a new mode for the fixture */
-    EditMode(QWidget* parent, QLCFixtureDef* fixtureDef);
+    EditMode(QWidget *parent, QLCFixtureDef *fixtureDef);
 
     /** Destructor */
     ~EditMode();
@@ -53,12 +58,10 @@ protected:
      *********************************************************************/
 public:
     /** Get the mode that was being edited. Don't save the pointer! */
-    QLCFixtureMode* mode() {
-        return m_mode;
-    }
+    QLCFixtureMode *mode();
 
 private:
-    QLCFixtureMode* m_mode;
+    QLCFixtureMode *m_mode;
 
     /*************************************************************************
      * Channels page
@@ -68,11 +71,15 @@ protected slots:
     void slotRemoveChannelClicked();
     void slotRaiseChannelClicked();
     void slotLowerChannelClicked();
+    void slotActsOnChannelChanged(QLCChannel *);
 
 protected:
     void refreshChannelList();
-    QLCChannel* currentChannel();
+    QLCChannel *currentChannel();
     void selectChannel(const QString &name);
+
+private slots:
+    void setActsOnChannel(int index);
 
     /************************************************************************
      * Heads page
@@ -90,18 +97,20 @@ private:
     void selectHead(int index);
 
     /*********************************************************************
-     * Clipboard
+     * Physical and clipboard
      *********************************************************************/
 public:
-    QLCPhysical getClipboard();
-    void setClipboard(QLCPhysical physical);
+    void pasteFromClipboard(QLCPhysical clipboard);
+
+signals:
+    void copyToClipboard(QLCPhysical physical);
+    void requestPasteFromClipboard();
 
 private slots:
-    void slotCopyToClipboard();
-    void slotPasteFromClipboard();
+    void slotPhysicalModeChanged();
 
 private:
-    QLCPhysical m_clipboard;
+    EditPhysical *m_phyEdit;
 
     /*********************************************************************
      * Accept
@@ -109,5 +118,7 @@ private:
 protected slots:
     void accept();
 };
+
+/** @} */
 
 #endif

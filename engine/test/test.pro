@@ -1,5 +1,4 @@
 TEMPLATE = subdirs
-CONFIG  += ordered
 SUBDIRS += bus
 SUBDIRS += chaser
 SUBDIRS += chaserrunner
@@ -31,6 +30,7 @@ SUBDIRS += qlci18n
 SUBDIRS += qlcinputchannel
 SUBDIRS += qlcinputprofile
 SUBDIRS += qlcmacros
+SUBDIRS += qlcpalette
 SUBDIRS += qlcphysical
 SUBDIRS += qlcpoint
 SUBDIRS += rgbalgorithm
@@ -39,7 +39,8 @@ SUBDIRS += rgbscript
 SUBDIRS += rgbtext
 SUBDIRS += scene
 SUBDIRS += scenevalue
-SUBDIRS += script
+!qmlui: SUBDIRS += script
+SUBDIRS += sequence
 SUBDIRS += universe
 
 # Stubs

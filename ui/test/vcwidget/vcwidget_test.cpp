@@ -1,8 +1,9 @@
 /*
-  Q Light Controller
+  Q Light Controller Plus - Test Unit
   vcwidget_test.cpp
 
   Copyright (C) Heikki Junnila
+                Massimo Callegari
 
   Licensed under the Apache License, Version 2.0 (the "License");
   you may not use this file except in compliance with the License.
@@ -19,7 +20,8 @@
 
 #include <QFrame>
 #include <QtTest>
-#include <QtXml>
+#include <QXmlStreamReader>
+#include <QXmlStreamWriter>
 
 #define protected public
 #define private public
@@ -67,7 +69,7 @@ void VCWidget_Test::initial()
     QCOMPARE(stub.lastClickPoint(), QPoint(0, 0));
 
     for (quint8 i = 0; i < 255; i++)
-        QVERIFY(stub.inputSource(i).isValid() == false);
+        QVERIFY(stub.inputSource(i) == NULL);
 }
 
 void VCWidget_Test::bgImage()
@@ -80,8 +82,8 @@ void VCWidget_Test::bgImage()
     QCOMPARE(stub.backgroundImage(), QString());
     QCOMPARE(stub.hasCustomBackgroundColor(), false);
 
-    stub.setBackgroundImage("../../../gfx/qlcplus.png");
-    QCOMPARE(stub.backgroundImage(), QString("../../../gfx/qlcplus.png"));
+    stub.setBackgroundImage("../../../resources/icons/png/qlcplus.png");
+    QCOMPARE(stub.backgroundImage(), QString("../../../resources/icons/png/qlcplus.png"));
     QCOMPARE(stub.palette().brush(QPalette::Window).texture().isNull(), false);
     QCOMPARE(stub.hasCustomBackgroundColor(), false);
     QCOMPARE(spy.size(), 1);
@@ -89,8 +91,8 @@ void VCWidget_Test::bgImage()
     stub.setBackgroundColor(QColor(Qt::red));
     QCOMPARE(spy.size(), 2);
 
-    stub.setBackgroundImage("../../../gfx/qlcplus.png");
-    QCOMPARE(stub.backgroundImage(), QString("../../../gfx/qlcplus.png"));
+    stub.setBackgroundImage("../../../resources/icons/png/qlcplus.png");
+    QCOMPARE(stub.backgroundImage(), QString("../../../resources/icons/png/qlcplus.png"));
     QCOMPARE(stub.palette().brush(QPalette::Window).texture().isNull(), false);
     QCOMPARE(stub.hasCustomBackgroundColor(), false);
     QCOMPARE(spy.size(), 3);
@@ -114,7 +116,7 @@ void VCWidget_Test::bgColor()
     QCOMPARE(stub.palette().brush(QPalette::Window).color(), QColor(Qt::red));
     QCOMPARE(spy.size(), 1);
 
-    stub.setBackgroundImage("../../../gfx/qlcplus.png");
+    stub.setBackgroundImage("../../../resources/icons/png/qlcplus.png");
     QCOMPARE(spy.size(), 2);
 
     stub.setBackgroundColor(QColor(Qt::red));
@@ -165,7 +167,7 @@ void VCWidget_Test::resetBg()
     QCOMPARE(stub.palette().brush(QPalette::WindowText).color(), QColor(Qt::cyan));
     QCOMPARE(spy.size(), 3);
 
-    stub.setBackgroundImage("../../../gfx/qlcplus.png");
+    stub.setBackgroundImage("../../../resources/icons/png/qlcplus.png");
     QCOMPARE(spy.size(), 4);
 
     stub.resetBackgroundColor();
@@ -203,11 +205,11 @@ void VCWidget_Test::resetFg()
     QCOMPARE(stub.palette().brush(QPalette::WindowText).color(), w.palette().color(QPalette::WindowText));
     QCOMPARE(spy.size(), 3);
 
-    stub.setBackgroundImage("../../../gfx/qlcplus.png");
+    stub.setBackgroundImage("../../../resources/icons/png/qlcplus.png");
     QCOMPARE(spy.size(), 4);
 
     stub.resetForegroundColor();
-    QCOMPARE(stub.backgroundImage(), QString("../../../gfx/qlcplus.png"));
+    QCOMPARE(stub.backgroundImage(), QString("../../../resources/icons/png/qlcplus.png"));
     QCOMPARE(stub.hasCustomBackgroundColor(), false);
     QCOMPARE(stub.palette().brush(QPalette::Window).texture().isNull(), false);
     QCOMPARE(stub.foregroundColor(), w.palette().color(QPalette::WindowText));
@@ -241,12 +243,12 @@ void VCWidget_Test::font()
 
     StubWidget stub(&w, m_doc);
     stub.setFont(font);
-    QCOMPARE(stub.font(), font);
+    QCOMPARE(stub.font().toString(), font.toString());
     QCOMPARE(stub.hasCustomFont(), true);
     QCOMPARE(spy.size(), 1);
 
     stub.resetFont();
-    QCOMPARE(stub.font(), w.font());
+    QCOMPARE(stub.font().toString(), w.font().toString());
     QCOMPARE(stub.hasCustomFont(), false);
     QCOMPARE(spy.size(), 2);
 }
@@ -295,37 +297,37 @@ void VCWidget_Test::frame()
 
 void VCWidget_Test::inputSource()
 {
-    QLCInputSource src;
+    QSharedPointer<QLCInputSource> src;
     QWidget w;
 
     StubWidget stub(&w, m_doc);
-    stub.setInputSource(QLCInputSource(1, 2));
+    stub.setInputSource(QSharedPointer<QLCInputSource>(new QLCInputSource(1, 2)));
     src = stub.inputSource();
-    QVERIFY(src.isValid() == true);
-    QCOMPARE(src.universe(), quint32(1));
-    QCOMPARE(src.channel(), quint32(2));
+    QVERIFY(src->isValid() == true);
+    QCOMPARE(src->universe(), quint32(1));
+    QCOMPARE(src->channel(), quint32(2));
 
     src = stub.inputSource(0);
-    QVERIFY(src.isValid() == true);
-    QCOMPARE(src.universe(), quint32(1));
-    QCOMPARE(src.channel(), quint32(2));
+    QVERIFY(src->isValid() == true);
+    QCOMPARE(src->universe(), quint32(1));
+    QCOMPARE(src->channel(), quint32(2));
 
     src = stub.inputSource(1);
-    QVERIFY(src.isValid() == false);
+    QVERIFY(src == NULL);
     src = stub.inputSource(2);
-    QVERIFY(src.isValid() == false);
+    QVERIFY(src == NULL);
     src = stub.inputSource(42);
-    QVERIFY(src.isValid() == false);
+    QVERIFY(src == NULL);
 
-    stub.setInputSource(QLCInputSource(4, 5), 0);
+    stub.setInputSource(QSharedPointer<QLCInputSource>(new QLCInputSource(3, 4)), 0);
     src = stub.inputSource();
-    QVERIFY(src.isValid() == true);
-    QCOMPARE(src.universe(), quint32(4));
-    QCOMPARE(src.channel(), quint32(5));
+    QVERIFY(src->isValid() == true);
+    QCOMPARE(src->universe(), quint32(3));
+    QCOMPARE(src->channel(), quint32(4));
 
-    stub.setInputSource(QLCInputSource());
+    stub.setInputSource(QSharedPointer<QLCInputSource>(new QLCInputSource()));
     src = stub.inputSource();
-    QVERIFY(src.isValid() == false);
+    QVERIFY(src == NULL);
 
     // Just for coverage - the implementation does nothing
     stub.slotInputValueChanged(0, 1, 2);
@@ -345,9 +347,9 @@ void VCWidget_Test::copy()
     stub.setFrameStyle(KVCFrameStyleRaised);
     stub.move(QPoint(10, 20));
     stub.resize(QSize(20, 30));
-    stub.setInputSource(QLCInputSource(0, 12));
-    stub.setInputSource(QLCInputSource(1, 2), 15);
-    stub.setInputSource(QLCInputSource(3, 4), 1);
+    stub.setInputSource(QSharedPointer<QLCInputSource>(new QLCInputSource(0, 12)));
+    stub.setInputSource(QSharedPointer<QLCInputSource>(new QLCInputSource(1, 2)), 15);
+    stub.setInputSource(QSharedPointer<QLCInputSource>(new QLCInputSource(3, 4)), 1);
 
     StubWidget copy(&w, m_doc);
     copy.copyFrom(&stub);
@@ -360,10 +362,20 @@ void VCWidget_Test::copy()
     QCOMPARE(copy.frameStyle(), (int) KVCFrameStyleRaised);
     QCOMPARE(copy.pos(), QPoint(10, 20));
     QCOMPARE(copy.size(), QSize(20, 30));
-    QCOMPARE(copy.inputSource(), QLCInputSource(0, 12));
-    QCOMPARE(copy.inputSource(15), QLCInputSource(1, 2));
-    QCOMPARE(copy.inputSource(1), QLCInputSource(3, 4));
-    QVERIFY(copy.inputSource(2).isValid() == false);
+
+    QLCInputSource *src1 = new QLCInputSource(0, 12);
+    QCOMPARE(copy.inputSource()->universe(), src1->universe());
+    QCOMPARE(copy.inputSource()->channel(), src1->channel());
+
+    QLCInputSource *src2 = new QLCInputSource(1, 2);
+    QCOMPARE(copy.inputSource(15)->universe(), src2->universe());
+    QCOMPARE(copy.inputSource(15)->channel(), src2->channel());
+
+    QLCInputSource *src3 = new QLCInputSource(3, 4);
+    QCOMPARE(copy.inputSource(1)->universe(), src3->universe());
+    QCOMPARE(copy.inputSource(1)->channel(), src3->channel());
+
+    QVERIFY(copy.inputSource(2) == NULL);
 }
 
 void VCWidget_Test::stripKeySequence()
@@ -399,85 +411,113 @@ void VCWidget_Test::loadInput()
 {
     QWidget w;
 
-    QDomDocument xmldoc;
-    QDomElement root = xmldoc.createElement("Input");
-    root.setAttribute("Universe", "12");
-    root.setAttribute("Channel", "34");
-    xmldoc.appendChild(root);
+    QBuffer buffer;
+    buffer.open(QIODevice::ReadWrite | QIODevice::Text);
+    QXmlStreamWriter xmlWriter(&buffer);
+
+    xmlWriter.writeStartElement("Input");
+    xmlWriter.writeAttribute("Universe", "12");
+    xmlWriter.writeAttribute("Channel", "34");
+
+    xmlWriter.writeEndDocument();
+    xmlWriter.setDevice(NULL);
+
+    buffer.seek(0);
+    QXmlStreamReader xmlReader(&buffer);
+    xmlReader.readNextStartElement();
 
     StubWidget stub(&w, m_doc);
-    QCOMPARE(stub.loadXMLInput(&root), true);
-    QCOMPARE(stub.inputSource(), QLCInputSource(12, 34));
+    QCOMPARE(stub.loadXMLInput(xmlReader), true);
 
-    root.setTagName("Output");
-    QCOMPARE(stub.loadXMLInput(&root), false);
-    QCOMPARE(stub.inputSource(), QLCInputSource(12, 34));
+    QLCInputSource *src = new QLCInputSource(12, 34);
+    QCOMPARE(stub.inputSource()->universe(), src->universe());
+    QCOMPARE(stub.inputSource()->channel(), src->channel());
+
+    buffer.close();
+    QByteArray bData = buffer.data();
+    bData.replace("<Input", "<Output");
+    buffer.setData(bData);
+    buffer.open(QIODevice::ReadOnly | QIODevice::Text);
+    buffer.seek(0);
+    xmlReader.setDevice(&buffer);
+    xmlReader.readNextStartElement();
+
+    QCOMPARE(stub.loadXMLInput(xmlReader), false);
+    QCOMPARE(stub.inputSource()->universe(), src->universe());
+    QCOMPARE(stub.inputSource()->channel(), src->channel());
 }
 
 void VCWidget_Test::loadAppearance()
 {
     QWidget w;
 
-    QDomDocument xmldoc;
-    QDomElement root = xmldoc.createElement("Appearance");
-    xmldoc.appendChild(root);
+    QBuffer buffer;
+    buffer.open(QIODevice::ReadWrite | QIODevice::Text);
+    QXmlStreamWriter xmlWriter(&buffer);
 
-    QDomElement frame = xmldoc.createElement("FrameStyle");
-    QDomText frameText = xmldoc.createTextNode("Sunken");
-    frame.appendChild(frameText);
-    root.appendChild(frame);
+    xmlWriter.writeStartElement("Appearance");
 
-    QDomElement fg = xmldoc.createElement("ForegroundColor");
-    QDomText fgText = xmldoc.createTextNode(QString("%1").arg(QColor(Qt::red).rgb()));
-    fg.appendChild(fgText);
-    root.appendChild(fg);
+    xmlWriter.writeTextElement("FrameStyle", "Sunken");
+    xmlWriter.writeTextElement("ForegroundColor", QString("%1").arg(QColor(Qt::red).rgb()));
+    xmlWriter.writeTextElement("BackgroundColor", QString("%1").arg(QColor(Qt::blue).rgb()));
+    xmlWriter.writeTextElement("BackgroundImage", "None");
 
-    QDomElement bg = xmldoc.createElement("BackgroundColor");
-    QDomText bgText = xmldoc.createTextNode(QString("%1").arg(QColor(Qt::blue).rgb()));
-    bg.appendChild(bgText);
-    root.appendChild(bg);
-
-    QDomElement bgImage = xmldoc.createElement("BackgroundImage");
-    QDomText bgImageText = xmldoc.createTextNode("None");
-    bgImage.appendChild(bgImageText);
-    root.appendChild(bgImage);
-
-    QDomElement foo = xmldoc.createElement("Foo");
-    root.appendChild(foo);
+    xmlWriter.writeStartElement("Foo");
+    xmlWriter.writeEndElement();
 
     QFont font(w.font());
     font.setItalic(true);
-    QDomElement fn = xmldoc.createElement("Font");
-    QDomText fnText = xmldoc.createTextNode(font.toString());
-    fn.appendChild(fnText);
-    root.appendChild(fn);
+    xmlWriter.writeTextElement("Font", font.toString());
+
+    xmlWriter.writeEndDocument();
+    xmlWriter.setDevice(NULL);
+
+    buffer.seek(0);
+    QXmlStreamReader xmlReader(&buffer);
+    xmlReader.readNextStartElement();
 
     StubWidget stub(&w, m_doc);
-    QVERIFY(stub.loadXMLAppearance(&root) == true);
+    QVERIFY(stub.loadXMLAppearance(xmlReader) == true);
     QCOMPARE(stub.frameStyle(), (int) KVCFrameStyleSunken);
     QCOMPARE(stub.hasCustomForegroundColor(), true);
     QCOMPARE(stub.foregroundColor(), QColor(Qt::red));
     QCOMPARE(stub.hasCustomBackgroundColor(), true);
     QCOMPARE(stub.backgroundColor(), QColor(Qt::blue));
-    QCOMPARE(stub.font(), font);
+    QCOMPARE(stub.font().toString(), font.toString());
 
-    fgText.setData("Default");
-    bgText.setData("Default");
-    bgImageText.setData("../../../gfx/qlcplus.png");
-    QVERIFY(stub.loadXMLAppearance(&root) == true);
+    buffer.close();
+    QByteArray bData = buffer.data();
+    bData.replace("4294901760", "Default"); // 4294901760 = red color
+    bData.replace("4278190335", "Default"); // 4278190335 = blue color
+    bData.replace("None", "../../../resources/icons/png/qlcplus.png");
+    buffer.setData(bData);
+    buffer.open(QIODevice::ReadOnly | QIODevice::Text);
+    buffer.seek(0);
+    xmlReader.setDevice(&buffer);
+    xmlReader.readNextStartElement();
+
+    QVERIFY(stub.loadXMLAppearance(xmlReader) == true);
     QCOMPARE(stub.frameStyle(), (int) KVCFrameStyleSunken);
     QCOMPARE(stub.hasCustomForegroundColor(), false);
     QCOMPARE(stub.hasCustomBackgroundColor(), false);
-    QCOMPARE(stub.backgroundImage(), QString("../../../gfx/qlcplus.png"));
-    QCOMPARE(stub.font(), font);
+    QCOMPARE(stub.backgroundImage(), QFileInfo("../../../resources/icons/png/qlcplus.png").absoluteFilePath());
+    QCOMPARE(stub.font().toString(), font.toString());
 
-    root.setTagName("Appiarenz");
-    QVERIFY(stub.loadXMLAppearance(&root) == false);
+    buffer.close();
+    bData = buffer.data();
+    bData.replace("<Appearance", "<Appiarenz");
+    buffer.setData(bData);
+    buffer.open(QIODevice::ReadOnly | QIODevice::Text);
+    buffer.seek(0);
+    xmlReader.setDevice(&buffer);
+    xmlReader.readNextStartElement();
+
+    QVERIFY(stub.loadXMLAppearance(xmlReader) == false);
     QCOMPARE(stub.frameStyle(), (int) KVCFrameStyleSunken);
     QCOMPARE(stub.hasCustomForegroundColor(), false);
     QCOMPARE(stub.hasCustomBackgroundColor(), false);
-    QCOMPARE(stub.backgroundImage(), QString("../../../gfx/qlcplus.png"));
-    QCOMPARE(stub.font(), font);
+    QCOMPARE(stub.backgroundImage(), QFileInfo("../../../resources/icons/png/qlcplus.png").absoluteFilePath());
+    QCOMPARE(stub.font().toString(), font.toString());
 }
 
 void VCWidget_Test::saveInput()
@@ -486,25 +526,36 @@ void VCWidget_Test::saveInput()
 
     StubWidget stub(&w, m_doc);
 
-    QDomDocument xmldoc;
-    QDomElement root = xmldoc.createElement("Root");
-    xmldoc.appendChild(root);
+    QBuffer buffer;
+    buffer.open(QIODevice::WriteOnly | QIODevice::Text);
+    QXmlStreamWriter xmlWriter(&buffer);
 
-    QVERIFY(stub.saveXMLInput(&xmldoc, &root) == true);
-    QCOMPARE(root.childNodes().count(), 0);
+    QVERIFY(stub.saveXMLInput(&xmlWriter) == false);
+    QVERIFY(buffer.data().size() == 0);
 
-    stub.setInputSource(QLCInputSource(34, 56));
-    QVERIFY(stub.saveXMLInput(&xmldoc, &root) == true);
-    QCOMPARE(root.childNodes().count(), 1);
-    QCOMPARE(root.firstChild().toElement().tagName(), QString("Input"));
-    QCOMPARE(root.firstChild().toElement().attribute("Universe"), QString("34"));
-    QCOMPARE(root.firstChild().toElement().attribute("Channel"), QString("56"));
+    stub.setInputSource(QSharedPointer<QLCInputSource>(new QLCInputSource(34, 56)));
+    QVERIFY(stub.saveXMLInput(&xmlWriter) == true);
 
-    root.clear();
+    xmlWriter.setDevice(NULL);
+    buffer.close();
 
-    stub.setInputSource(QLCInputSource(34, 56), 1);
-    QVERIFY(stub.saveXMLInput(&xmldoc, &root) == true);
-    QCOMPARE(root.childNodes().count(), 0);
+    buffer.open(QIODevice::ReadOnly | QIODevice::Text);
+    QXmlStreamReader xmlReader(&buffer);
+
+    QVERIFY(xmlReader.readNextStartElement() == true);
+    QCOMPARE(xmlReader.name().toString(), QString("Input"));
+    QCOMPARE(xmlReader.attributes().value("Universe").toString(), QString("34"));
+    QCOMPARE(xmlReader.attributes().value("Channel").toString(), QString("56"));
+
+    xmlReader.setDevice(NULL);
+    buffer.close();
+    buffer.setData(QByteArray());
+    buffer.open(QIODevice::WriteOnly | QIODevice::Text);
+    xmlWriter.setDevice(&buffer);
+
+    stub.setInputSource(QSharedPointer<QLCInputSource>(new QLCInputSource(34, 56)), 1);
+    QVERIFY(stub.saveXMLInput(&xmlWriter) == true);
+    //QCOMPARE(root.childNodes().count(), 0);
 }
 
 void VCWidget_Test::saveAppearance()
@@ -519,50 +570,54 @@ void VCWidget_Test::saveAppearance()
     stub.setFont(fn);
     stub.setFrameStyle(KVCFrameStyleRaised);
 
-    QDomDocument xmldoc;
-    QDomElement root = xmldoc.createElement("Root");
-    xmldoc.appendChild(root);
+    QBuffer buffer;
+    buffer.open(QIODevice::WriteOnly | QIODevice::Text);
+    QXmlStreamWriter xmlWriter(&buffer);
 
     int bgcolor = 0, bgimage = 0, fgcolor = 0, font = 0, frame = 0;
 
-    QCOMPARE(stub.saveXMLAppearance(&xmldoc, &root), true);
-    QDomNode node = root.firstChild();
-    QCOMPARE(node.toElement().tagName(), QString("Appearance"));
-    node = node.firstChild();
-    while (node.isNull() == false)
+    QCOMPARE(stub.saveXMLAppearance(&xmlWriter), true);
+
+    xmlWriter.setDevice(NULL);
+    buffer.close();
+
+    buffer.open(QIODevice::ReadOnly | QIODevice::Text);
+    QXmlStreamReader xmlReader(&buffer);
+    xmlReader.readNextStartElement();
+
+    QCOMPARE(xmlReader.name().toString(), QString("Appearance"));
+
+    while (xmlReader.readNextStartElement())
     {
-        QDomElement tag = node.toElement();
-        if (tag.tagName() == "BackgroundColor")
+        if (xmlReader.name() == "BackgroundColor")
         {
             bgcolor++;
-            QCOMPARE(tag.text(), QString::number(QColor(Qt::red).rgb()));
+            QCOMPARE(xmlReader.readElementText(), QString::number(QColor(Qt::red).rgb()));
         }
-        else if (tag.tagName() == "BackgroundImage")
+        else if (xmlReader.name() == "BackgroundImage")
         {
             bgimage++;
-            QCOMPARE(tag.text(), QString("None"));
+            QCOMPARE(xmlReader.readElementText(), QString("None"));
         }
-        else if (tag.tagName() == "ForegroundColor")
+        else if (xmlReader.name() == "ForegroundColor")
         {
             fgcolor++;
-            QCOMPARE(tag.text(), QString::number(QColor(Qt::green).rgb()));
+            QCOMPARE(xmlReader.readElementText(), QString::number(QColor(Qt::green).rgb()));
         }
-        else if (tag.tagName() == "Font")
+        else if (xmlReader.name() == "Font")
         {
             font++;
-            QCOMPARE(tag.text(), fn.toString());
+            QCOMPARE(xmlReader.readElementText(), fn.toString());
         }
-        else if (tag.tagName() == "FrameStyle")
+        else if (xmlReader.name() == "FrameStyle")
         {
             frame++;
-            QCOMPARE(tag.text(), QString("Raised"));
+            QCOMPARE(xmlReader.readElementText(), QString("Raised"));
         }
         else
         {
-            QFAIL(QString("Unexpected tag: %1").arg(tag.tagName()).toUtf8().constData());
+            QFAIL(QString("Unexpected tag: %1").arg(xmlReader.name().toString()).toUtf8().constData());
         }
-
-        node = node.nextSibling();
     }
 
     QCOMPARE(bgcolor, 1);
@@ -577,52 +632,56 @@ void VCWidget_Test::saveAppearanceDefaultsImage()
     QWidget w;
 
     StubWidget stub(&w, m_doc);
-    stub.setBackgroundImage("../../../gfx/qlcplus.png");
+    stub.setBackgroundImage("../../../resources/icons/png/qlcplus.png");
 
-    QDomDocument xmldoc;
-    QDomElement root = xmldoc.createElement("Root");
-    xmldoc.appendChild(root);
+    QBuffer buffer;
+    buffer.open(QIODevice::WriteOnly | QIODevice::Text);
+    QXmlStreamWriter xmlWriter(&buffer);
 
     int bgcolor = 0, bgimage = 0, fgcolor = 0, font = 0, frame = 0;
 
-    QCOMPARE(stub.saveXMLAppearance(&xmldoc, &root), true);
-    QDomNode node = root.firstChild();
-    QCOMPARE(node.toElement().tagName(), QString("Appearance"));
-    node = node.firstChild();
-    while (node.isNull() == false)
+    QCOMPARE(stub.saveXMLAppearance(&xmlWriter), true);
+
+    xmlWriter.setDevice(NULL);
+    buffer.close();
+
+    buffer.open(QIODevice::ReadOnly | QIODevice::Text);
+    QXmlStreamReader xmlReader(&buffer);
+    xmlReader.readNextStartElement();
+
+    QCOMPARE(xmlReader.name().toString(), QString("Appearance"));
+
+    while (xmlReader.readNextStartElement())
     {
-        QDomElement tag = node.toElement();
-        if (tag.tagName() == "BackgroundColor")
+        if (xmlReader.name() == "BackgroundColor")
         {
             bgcolor++;
-            QCOMPARE(tag.text(), QString("Default"));
+            QCOMPARE(xmlReader.readElementText(), QString("Default"));
         }
-        else if (tag.tagName() == "BackgroundImage")
+        else if (xmlReader.name() == "BackgroundImage")
         {
             bgimage++;
-            QCOMPARE(tag.text(), QString("../../../gfx/qlcplus.png"));
+            QCOMPARE(xmlReader.readElementText(), QString("../../../resources/icons/png/qlcplus.png"));
         }
-        else if (tag.tagName() == "ForegroundColor")
+        else if (xmlReader.name() == "ForegroundColor")
         {
             fgcolor++;
-            QCOMPARE(tag.text(), QString("Default"));
+            QCOMPARE(xmlReader.readElementText(), QString("Default"));
         }
-        else if (tag.tagName() == "Font")
+        else if (xmlReader.name() == "Font")
         {
             font++;
-            QCOMPARE(tag.text(), QString("Default"));
+            QCOMPARE(xmlReader.readElementText(), QString("Default"));
         }
-        else if (tag.tagName() == "FrameStyle")
+        else if (xmlReader.name() == "FrameStyle")
         {
             frame++;
-            QCOMPARE(tag.text(), QString("None"));
+            QCOMPARE(xmlReader.readElementText(), QString("None"));
         }
         else
         {
-            QFAIL(QString("Unexpected tag: %1").arg(tag.tagName()).toUtf8().constData());
+            QFAIL(QString("Unexpected tag: %1").arg(xmlReader.name().toString()).toUtf8().constData());
         }
-
-        node = node.nextSibling();
     }
 
     QCOMPARE(bgcolor, 1);
@@ -643,34 +702,48 @@ void VCWidget_Test::saveWindowState()
     stub.move(QPoint(10, 20));
     stub.show();
 
-    QDomDocument xmldoc;
-    QDomElement root = xmldoc.createElement("Root");
-    xmldoc.appendChild(root);
+    QBuffer buffer;
+    buffer.open(QIODevice::WriteOnly | QIODevice::Text);
+    QXmlStreamWriter xmlWriter(&buffer);
 
-    QCOMPARE(stub.saveXMLWindowState(&xmldoc, &root), true);
-    QDomElement tag = root.firstChild().toElement();
-    QCOMPARE(tag.tagName(), QString("WindowState"));
-    QCOMPARE(tag.attribute("X"), QString("10"));
-    QCOMPARE(tag.attribute("Y"), QString("20"));
-    QCOMPARE(tag.attribute("Width"), QString("30"));
-    QCOMPARE(tag.attribute("Height"), QString("40"));
-    QCOMPARE(tag.attribute("Visible"), QString("True"));
+    QCOMPARE(stub.saveXMLWindowState(&xmlWriter), true);
 
-    root.removeChild(tag);
+    xmlWriter.setDevice(NULL);
+    buffer.close();
+
+    buffer.open(QIODevice::ReadOnly | QIODevice::Text);
+    QXmlStreamReader xmlReader(&buffer);
+    xmlReader.readNextStartElement();
+
+    QCOMPARE(xmlReader.name().toString(), QString("WindowState"));
+    QCOMPARE(xmlReader.attributes().value("X").toString(), QString("10"));
+    QCOMPARE(xmlReader.attributes().value("Y").toString(), QString("20"));
+    QCOMPARE(xmlReader.attributes().value("Width").toString(), QString("30"));
+    QCOMPARE(xmlReader.attributes().value("Height").toString(), QString("40"));
+    QCOMPARE(xmlReader.attributes().value("Visible").toString(), QString("True"));
+
+    xmlReader.setDevice(NULL);
+    buffer.close();
+    buffer.setData(QByteArray());
+    buffer.open(QIODevice::WriteOnly | QIODevice::Text);
+    xmlWriter.setDevice(&buffer);
 
     w.hide();
-    QCOMPARE(stub.saveXMLWindowState(&xmldoc, &root), true);
-    tag = root.firstChild().toElement();
-    QCOMPARE(tag.tagName(), QString("WindowState"));
-    QCOMPARE(tag.attribute("X"), QString("10"));
-    QCOMPARE(tag.attribute("Y"), QString("20"));
-    QCOMPARE(tag.attribute("Width"), QString("30"));
-    QCOMPARE(tag.attribute("Height"), QString("40"));
-    QCOMPARE(tag.attribute("Visible"), QString("False"));
+    QCOMPARE(stub.saveXMLWindowState(&xmlWriter), true);
 
-    QCOMPARE(stub.saveXMLWindowState(&xmldoc, NULL), false);
-    QCOMPARE(stub.saveXMLWindowState(NULL, &root), false);
-    QCOMPARE(stub.saveXMLWindowState(NULL, NULL), false);
+    xmlWriter.setDevice(NULL);
+    buffer.close();
+
+    buffer.open(QIODevice::ReadOnly | QIODevice::Text);
+    xmlReader.setDevice(&buffer);
+    xmlReader.readNextStartElement();
+
+    QCOMPARE(xmlReader.name().toString(), QString("WindowState"));
+    QCOMPARE(xmlReader.attributes().value("X").toString(), QString("10"));
+    QCOMPARE(xmlReader.attributes().value("Y").toString(), QString("20"));
+    QCOMPARE(xmlReader.attributes().value("Width").toString(), QString("30"));
+    QCOMPARE(xmlReader.attributes().value("Height").toString(), QString("40"));
+    QCOMPARE(xmlReader.attributes().value("Visible").toString(), QString("False"));
 }
 
 void VCWidget_Test::loadWindowState()
@@ -679,41 +752,65 @@ void VCWidget_Test::loadWindowState()
 
     StubWidget stub(&parent, m_doc);
 
-    QDomDocument xmldoc;
-    QDomElement root = xmldoc.createElement("WindowState");
-    root.setAttribute("X", "20");
-    root.setAttribute("Y", "10");
-    root.setAttribute("Width", "40");
-    root.setAttribute("Height", "30");
-    root.setAttribute("Visible", "True");
-    xmldoc.appendChild(root);
+    QBuffer buffer;
+    buffer.open(QIODevice::ReadWrite | QIODevice::Text);
+    QXmlStreamWriter xmlWriter(&buffer);
+
+    xmlWriter.writeStartElement("WindowState");
+    xmlWriter.writeAttribute("X", "20");
+    xmlWriter.writeAttribute("Y", "10");
+    xmlWriter.writeAttribute("Width", "40");
+    xmlWriter.writeAttribute("Height", "30");
+    xmlWriter.writeAttribute("Visible", "True");
+
+    xmlWriter.writeEndDocument();
+    xmlWriter.setDevice(NULL);
+
+    buffer.seek(0);
+    QXmlStreamReader xmlReader(&buffer);
+    xmlReader.readNextStartElement();
 
     int x = 0, y = 0, w = 0, h = 0;
     bool v = false;
-    QCOMPARE(stub.loadXMLWindowState(&root, &x, &y, &w, &h, NULL), false);
-    QCOMPARE(stub.loadXMLWindowState(&root, &x, &y, &w, NULL, &v), false);
-    QCOMPARE(stub.loadXMLWindowState(&root, &x, &y, NULL, &h, &v), false);
-    QCOMPARE(stub.loadXMLWindowState(&root, &x, NULL, &w, &h, &v), false);
-    QCOMPARE(stub.loadXMLWindowState(&root, NULL, &y, &w, &h, &v), false);
-    QCOMPARE(stub.loadXMLWindowState(NULL, &x, &y, &w, &h, &v), false);
+    QCOMPARE(stub.loadXMLWindowState(xmlReader, &x, &y, &w, &h, NULL), false);
+    QCOMPARE(stub.loadXMLWindowState(xmlReader, &x, &y, &w, NULL, &v), false);
+    QCOMPARE(stub.loadXMLWindowState(xmlReader, &x, &y, NULL, &h, &v), false);
+    QCOMPARE(stub.loadXMLWindowState(xmlReader, &x, NULL, &w, &h, &v), false);
+    QCOMPARE(stub.loadXMLWindowState(xmlReader, NULL, &y, &w, &h, &v), false);
 
-    QCOMPARE(stub.loadXMLWindowState(&root, &x, &y, &w, &h, &v), true);
+    QCOMPARE(stub.loadXMLWindowState(xmlReader, &x, &y, &w, &h, &v), true);
     QCOMPARE(x, 20);
     QCOMPARE(y, 10);
     QCOMPARE(w, 40);
     QCOMPARE(h, 30);
     QCOMPARE(v, true);
 
-    root.setAttribute("Visible", "False");
-    QCOMPARE(stub.loadXMLWindowState(&root, &x, &y, &w, &h, &v), true);
+    buffer.close();
+    QByteArray bData = buffer.data();
+    bData.replace("True", "False");
+    buffer.setData(bData);
+    buffer.open(QIODevice::ReadOnly | QIODevice::Text);
+    buffer.seek(0);
+    xmlReader.setDevice(&buffer);
+    xmlReader.readNextStartElement();
+
+    QCOMPARE(stub.loadXMLWindowState(xmlReader, &x, &y, &w, &h, &v), true);
     QCOMPARE(x, 20);
     QCOMPARE(y, 10);
     QCOMPARE(w, 40);
     QCOMPARE(h, 30);
     QCOMPARE(v, false);
 
-    root.setTagName("WinduhState");
-    QCOMPARE(stub.loadXMLWindowState(&root, &x, &y, &w, &h, &v), false);
+    buffer.close();
+    bData = buffer.data();
+    bData.replace("<WindowState", "<WinduhState");
+    buffer.setData(bData);
+    buffer.open(QIODevice::ReadOnly | QIODevice::Text);
+    buffer.seek(0);
+    xmlReader.setDevice(&buffer);
+    xmlReader.readNextStartElement();
+
+    QCOMPARE(stub.loadXMLWindowState(xmlReader, &x, &y, &w, &h, &v), false);
 }
 
 void VCWidget_Test::resize()
@@ -840,7 +937,7 @@ void VCWidget_Test::mousePress()
     stub->resize(QSize(20, 20));
     QCOMPARE(stub->pos(), QPoint(0, 0));
 
-    QMouseEvent e(QEvent::MouseButtonPress, QPoint(10, 10), Qt::LeftButton, 0, 0);
+    QMouseEvent e(QEvent::MouseButtonPress, QPoint(10, 10), Qt::LeftButton, Qt::NoButton, Qt::NoModifier);
 
     stub->mousePressEvent(&e);
     QCOMPARE(vc->selectedWidgets().size(), 1);
@@ -848,10 +945,33 @@ void VCWidget_Test::mousePress()
     QCOMPARE(stub->lastClickPoint(), QPoint(10, 10));
     QTest::qWait(10);
 
-    e = QMouseEvent(QEvent::MouseMove, QPoint(20, 20), Qt::NoButton, Qt::LeftButton, 0);
+    e = QMouseEvent(QEvent::MouseMove, QPoint(20, 20), Qt::NoButton, Qt::LeftButton, Qt::NoModifier);
     stub->mouseMoveEvent(&e);
     QTest::qWait(10);
     QCOMPARE(stub->pos(), QPoint(10, 10));
+}
+
+void VCWidget_Test::acceptInput()
+{
+    QWidget w;
+
+    StubWidget stub(&w, m_doc);
+
+    QVERIFY(stub.acceptsInput() == false);
+
+    m_doc->setMode(Doc::Operate);
+
+    QVERIFY(stub.acceptsInput() == true);
+
+    stub.setDisabled(true);
+    QVERIFY(stub.acceptsInput() == false);
+    stub.setDisabled(false);
+    QVERIFY(stub.acceptsInput() == true);
+
+    stub.setEnabled(false);
+    QVERIFY(stub.acceptsInput() == false);
+    stub.setEnabled(true);
+    QVERIFY(stub.acceptsInput() == true);
 }
 
 QTEST_MAIN(VCWidget_Test)

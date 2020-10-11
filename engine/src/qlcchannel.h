@@ -1,8 +1,9 @@
 /*
-  Q Light Controller
+  Q Light Controller Plus
   qlcchannel.h
 
   Copyright (C) Heikki Junnila
+                Massimo Callegari
 
   Licensed under the Apache License, Version 2.0 (the "License");
   you may not use this file except in compliance with the License.
@@ -17,8 +18,8 @@
   limitations under the License.
 */
 
-#ifndef QLC_CHANNEL_H
-#define QLC_CHANNEL_H
+#ifndef QLCCHANNEL_H
+#define QLCCHANNEL_H
 
 #include <climits>
 #include <QString>
@@ -27,20 +28,21 @@
 
 class QFile;
 class QString;
-class QDomDocument;
-class QDomElement;
+class QLCChannel;
 class QStringList;
 class QLCCapability;
-class QLCChannel;
+class QXmlStreamReader;
+class QXmlStreamWriter;
 
 /** @addtogroup engine Engine
  * @{
  */
 
 #define KXMLQLCChannel          QString("Channel")
-#define KXMLQLCChannelNumber    QString("Number")
 #define KXMLQLCChannelName      QString("Name")
+#define KXMLQLCChannelPreset    QString("Preset")
 #define KXMLQLCChannelGroup     QString("Group")
+#define KXMLQLCChannelDefault   QString("Default")
 #define KXMLQLCChannelGroupByte QString("Byte")
 #define KXMLQLCChannelColour    QString("Colour")
 
@@ -67,14 +69,15 @@ class QLCChannel;
  * fixture modes. Instead, a QLCFixtureMode defines the actual channel number
  * for each of its QLCChannels.
  */
-class QLCChannel
+class QLCChannel : public QObject
 {
+    Q_OBJECT
+
 public:
     /** Standard constructor */
-    QLCChannel();
+    QLCChannel(QObject *parent = 0);
 
-    /** Copy constructor */
-    QLCChannel(const QLCChannel* channel);
+    QLCChannel *createCopy();
 
     /** Destructor */
     ~QLCChannel();
@@ -86,6 +89,106 @@ public:
      * The invalid channel number (for comparison etc...)
      */
     static quint32 invalid();
+
+    /*********************************************************************
+     * Presets
+     *
+     * please see
+     * https://github.com/mcallegari/qlcplus/wiki/Fixture-definition-presets
+     * when changing this list
+     *********************************************************************/
+public:
+    enum Preset
+    {
+        Custom = 0,
+        IntensityMasterDimmer,
+        IntensityMasterDimmerFine,
+        IntensityDimmer,
+        IntensityDimmerFine,
+        IntensityRed,
+        IntensityRedFine,
+        IntensityGreen,
+        IntensityGreenFine,
+        IntensityBlue,
+        IntensityBlueFine,
+        IntensityCyan,
+        IntensityCyanFine,
+        IntensityMagenta,
+        IntensityMagentaFine,
+        IntensityYellow,
+        IntensityYellowFine,
+        IntensityAmber,
+        IntensityAmberFine,
+        IntensityWhite,
+        IntensityWhiteFine,
+        IntensityUV,
+        IntensityUVFine,
+        IntensityIndigo,
+        IntensityIndigoFine,
+        IntensityLime,
+        IntensityLimeFine,
+        IntensityHue,
+        IntensityHueFine,
+        IntensitySaturation,
+        IntensitySaturationFine,
+        IntensityLightness,
+        IntensityLightnessFine,
+        IntensityValue,
+        IntensityValueFine,
+        PositionPan,
+        PositionPanFine,
+        PositionTilt,
+        PositionTiltFine,
+        PositionXAxis,
+        PositionYAxis,
+        SpeedPanSlowFast,
+        SpeedPanFastSlow,
+        SpeedTiltSlowFast,
+        SpeedTiltFastSlow,
+        SpeedPanTiltSlowFast,
+        SpeedPanTiltFastSlow,
+        ColorMacro,
+        ColorWheel,
+        ColorWheelFine,
+        ColorRGBMixer,
+        ColorCTOMixer,
+        ColorCTCMixer,
+        ColorCTBMixer,
+        GoboWheel,
+        GoboWheelFine,
+        GoboIndex,
+        GoboIndexFine,
+        ShutterStrobeSlowFast,
+        ShutterStrobeFastSlow,
+        ShutterIrisMinToMax,
+        ShutterIrisMaxToMin,
+        ShutterIrisFine,
+        BeamFocusNearFar,
+        BeamFocusFarNear,
+        BeamFocusFine,
+        BeamZoomSmallBig,
+        BeamZoomBigSmall,
+        BeamZoomFine,
+        PrismRotationSlowFast,
+        PrismRotationFastSlow,
+        NoFunction,
+        LastPreset // dummy for cycles
+    };
+#if QT_VERSION >= 0x050500
+    Q_ENUM(Preset)
+#else
+    Q_ENUMS(Preset)
+#endif
+    static QString presetToString(Preset preset);
+    static Preset stringToPreset(const QString &preset);
+
+    Preset preset() const;
+    void setPreset(Preset preset);
+
+    QLCCapability *addPresetCapability();
+
+protected:
+    Preset m_preset;
 
     /*********************************************************************
      * Groups
@@ -104,8 +207,14 @@ public:
         Beam,
         Effect,
         Maintenance,
+        Nothing,
         NoGroup = INT_MAX
     };
+#if QT_VERSION >= 0x050500
+    Q_ENUM(Group)
+#else
+    Q_ENUMS(Group)
+#endif
 
     /** Get a list of possible channel groups */
     static QStringList groupList();
@@ -122,11 +231,20 @@ public:
     /** Get the channel's group as an enum */
     Group group() const;
 
-    QIcon getIconFromGroup(Group grp) const;
+    /** Get the channel's representation icon */
+    QIcon getIcon() const;
+
+    /** Get the channel's icon resource name */
+    QString getIconNameFromGroup(QLCChannel::Group grp, bool svg = false) const;
 
 private:
     QPixmap drawIntensity(QColor color, QString str) const;
+
+    /** Create a colored icon for a specific intensity channel */
     QIcon getIntensityIcon() const;
+
+    /** Get the intensity channel color name */
+    QString getIntensityColorCode(bool svg = false) const;
 
 protected:
     Group m_group;
@@ -135,6 +253,7 @@ protected:
      * Properties
      *********************************************************************/
 public:
+    /** Role in a 16bit mode */
     enum ControlByte
     {
         MSB = 0,
@@ -147,6 +266,12 @@ public:
     /** Set the channel's name */
     void setName(const QString& name);
 
+    /** Get the channel's default value */
+    uchar defaultValue() const;
+
+    /** Set the channel's default value */
+    void setDefaultValue(uchar value);
+
     /** Set the channel's control byte */
     void setControlByte(ControlByte byte);
 
@@ -155,6 +280,7 @@ public:
 
 protected:
     QString m_name;
+    uchar m_defaultValue;
     ControlByte m_controlByte;
 
     /*************************************************************************
@@ -171,8 +297,17 @@ public:
         Magenta     = 0xFF00FF,
         Yellow      = 0xFFFF00,
         Amber       = 0xFF7E00,
-        White       = 0xFFFFFF
+        White       = 0xFFFFFF,
+        UV          = 0x9400D3,
+        Lime        = 0xADFF2F,
+        Indigo      = 0x4B0082
     };
+
+#if QT_VERSION >= 0x050500
+    Q_ENUM(PrimaryColour)
+#else
+    Q_ENUMS(PrimaryColour)
+#endif
 
     /** Get a list of possible channel groups */
     static QStringList colourList();
@@ -222,6 +357,9 @@ public:
     /** Remove a capability from the channel */
     bool removeCapability(QLCCapability* cap);
 
+    /** Change a current cap range, checking for feasibility */
+    bool setCapabilityRange(QLCCapability* cap, uchar min, uchar max);
+
     /** Sort capabilities to ascending order by their values */
     void sortCapabilities();
 
@@ -233,11 +371,11 @@ protected:
      * File operations
      *********************************************************************/
 public:
-    /** Save the channel to a QDomDocument, under the given element */
-    bool saveXML(QDomDocument* doc, QDomElement* root) const;
+    /** Save the channel to a QXmlStreamWriter */
+    bool saveXML(QXmlStreamWriter *doc) const;
 
     /** Load channel contents from an XML element */
-    bool loadXML(const QDomElement& tag);
+    bool loadXML(QXmlStreamReader &doc);
 };
 
 /** @} */

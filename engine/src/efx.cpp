@@ -1,8 +1,9 @@
 /*
-  Q Light Controller
+  Q Light Controller Plus
   efx.cpp
 
   Copyright (C) Heikki Junnila
+                Massimo Callegari
 
   Licensed under the Apache License, Version 2.0 (the "License");
   you may not use this file except in compliance with the License.
@@ -20,7 +21,8 @@
 #include <QVector>
 #include <QDebug>
 #include <QList>
-#include <QtXml>
+#include <QXmlStreamReader>
+#include <QXmlStreamWriter>
 
 #include <math.h>
 
@@ -42,47 +44,39 @@
  * Initialization
  *****************************************************************************/
 
-EFX::EFX(Doc* doc) : Function(doc, Function::EFX)
+EFX::EFX(Doc* doc)
+    : Function(doc, Function::EFXType)
+    , m_algorithm(EFX::Circle)
+    , m_isRelative(false)
+    , m_xFrequency(2)
+    , m_yFrequency(3)
+    , m_xPhase(M_PI / 2.0)
+    , m_yPhase(0)
+    , m_propagationMode(Parallel)
+    , m_legacyFadeBus(Bus::invalid())
+    , m_legacyHoldBus(Bus::invalid())
 {
-    m_width = 127;
-    m_height = 127;
-    m_xOffset = 127;
-    m_yOffset = 127;
-    m_rotation = 0;
-    m_startOffset = 0;
-    m_isRelative = false;
-
     updateRotationCache();
-
-    m_xFrequency = 2;
-    m_yFrequency = 3;
-    m_xPhase = M_PI / 2.0;
-    m_yPhase = 0;
-
-    m_propagationMode = Parallel;
-
-    m_algorithm = EFX::Circle;
-
     setName(tr("New EFX"));
-
-    m_fader = NULL;
-
     setDuration(20000); // 20s
 
-    m_legacyHoldBus = Bus::invalid();
-    m_legacyFadeBus = Bus::invalid();
-
-    registerAttribute(tr("Width"));
-    registerAttribute(tr("Height"));
-    registerAttribute(tr("Rotation"));
-    registerAttribute(tr("X Offset"));
-    registerAttribute(tr("Y Offset"));
+    registerAttribute(tr("Width"), Function::LastWins, 0.0, 127.0, 127.0);
+    registerAttribute(tr("Height"), Function::LastWins, 0.0, 127.0, 127.0);
+    registerAttribute(tr("Rotation"), Function::LastWins, 0.0, 359.0, 0.0);
+    registerAttribute(tr("X Offset"), Function::LastWins, 0.0, 255.0, 127.0);
+    registerAttribute(tr("Y Offset"), Function::LastWins, 0.0, 255.0, 127.0);
+    registerAttribute(tr("Start Offset"), Function::LastWins, 0.0, 359.0, 0.0);
 }
 
 EFX::~EFX()
 {
     while (m_fixtures.isEmpty() == false)
         delete m_fixtures.takeFirst();
+}
+
+QIcon EFX::getIcon() const
+{
+    return QIcon(":/efx.png");
 }
 
 /*****************************************************************************
@@ -127,12 +121,9 @@ bool EFX::copyFrom(const Function* function)
 
     m_propagationMode = efx->m_propagationMode;
 
-    m_width = efx->m_width;
-    m_height = efx->m_height;
-    m_xOffset = efx->m_xOffset;
-    m_yOffset = efx->m_yOffset;
-    m_rotation = efx->m_rotation;
-    m_startOffset = efx->m_startOffset;
+    for (int i = 0; i < efx->attributes().count(); i++)
+        adjustAttribute(efx->attributes().at(i).m_value, i);
+
     m_isRelative = efx->m_isRelative;
 
     updateRotationCache();
@@ -150,10 +141,11 @@ bool EFX::copyFrom(const Function* function)
 void EFX::setDuration(uint ms)
 {
     Function::setDuration(ms);
+
     for(int i = 0; i < m_fixtures.size(); ++i)
-    {
         m_fixtures[i]->durationChanged();
-    }
+
+    emit durationChanged(ms);
 }
 
 /*****************************************************************************
@@ -167,6 +159,9 @@ EFX::Algorithm EFX::algorithm() const
 
 void EFX::setAlgorithm(EFX::Algorithm algo)
 {
+    if (algo == m_algorithm)
+        return;
+
     if (algo >= EFX::Circle && algo <= EFX::Lissajous)
         m_algorithm = algo;
     else
@@ -183,6 +178,9 @@ QStringList EFX::algorithmList()
     list << algorithmToString(EFX::Line);
     list << algorithmToString(EFX::Line2);
     list << algorithmToString(EFX::Diamond);
+    list << algorithmToString(EFX::Square);
+    list << algorithmToString(EFX::SquareChoppy);
+    list << algorithmToString(EFX::Leaf);
     list << algorithmToString(EFX::Lissajous);
     return list;
 }
@@ -202,6 +200,12 @@ QString EFX::algorithmToString(EFX::Algorithm algo)
             return QString(KXMLQLCEFXLine2AlgorithmName);
         case EFX::Diamond:
             return QString(KXMLQLCEFXDiamondAlgorithmName);
+        case EFX::Square:
+            return QString(KXMLQLCEFXSquareAlgorithmName);
+        case EFX::SquareChoppy:
+            return QString(KXMLQLCEFXSquareChoppyAlgorithmName);
+        case EFX::Leaf:
+            return QString(KXMLQLCEFXLeafAlgorithmName);
         case EFX::Lissajous:
             return QString(KXMLQLCEFXLissajousAlgorithmName);
     }
@@ -217,52 +221,56 @@ EFX::Algorithm EFX::stringToAlgorithm(const QString& str)
         return EFX::Line2;
     else if (str == QString(KXMLQLCEFXDiamondAlgorithmName))
         return EFX::Diamond;
+    else if (str == QString(KXMLQLCEFXSquareAlgorithmName))
+        return EFX::Square;
+    else if (str == QString(KXMLQLCEFXSquareChoppyAlgorithmName))
+        return EFX::SquareChoppy;
+    else if (str == QString(KXMLQLCEFXLeafAlgorithmName))
+        return EFX::Leaf;
     else if (str == QString(KXMLQLCEFXLissajousAlgorithmName))
         return EFX::Lissajous;
     else
         return EFX::Circle;
 }
 
-void EFX::preview(QVector <QPoint>& polygon) const
+void EFX::preview(QPolygonF &polygon) const
 {
     preview(polygon, Function::Forward, 0);
 }
 
-void EFX::previewFixtures(QVector <QVector <QPoint> >& polygons) const
+void EFX::previewFixtures(QVector <QPolygonF>& polygons) const
 {
     polygons.resize(m_fixtures.size());
     for (int i = 0; i < m_fixtures.size(); ++i)
-    { 
         preview(polygons[i], m_fixtures[i]->m_direction, m_fixtures[i]->m_startOffset);
-    }
 }
 
-void EFX::preview(QVector <QPoint>& polygon, Function::Direction direction, int startOffset) const
+void EFX::preview(QPolygonF &polygon, Function::Direction direction, int startOffset) const
 {
-    int stepCount = 128;
+    float stepCount = 128.0;
     int step = 0;
-    qreal stepSize = (qreal)(1) / ((qreal)(stepCount) / (M_PI * 2.0));
+    float stepSize = 1.0 / (stepCount / (M_PI * 2.0));
 
-    qreal i = 0;
-    qreal x = 0;
-    qreal y = 0;
+    float i = 0;
+    float x = 0;
+    float y = 0;
 
-    /* Resize the array to contain stepCount points */
-    polygon.resize(stepCount);
+    /* Reset the polygon to fill it with new values */
+    polygon.clear();
 
     /* Draw a preview of the effect */
     for (step = 0; step < stepCount; step++)
     {
         calculatePoint(direction, startOffset, i, &x, &y);
-        polygon[step] = QPoint(int(x), int(y));
+        polygon << QPointF(x, y);
         i += stepSize;
     }
 }
 
-void EFX::calculatePoint(Function::Direction direction, int startOffset, qreal iterator, qreal* x, qreal* y) const
+void EFX::calculatePoint(Function::Direction direction, int startOffset, float iterator, float* x, float* y) const
 {
     iterator = calculateDirection(direction, iterator);
-    iterator += convertOffset(startOffset + m_startOffset);
+    iterator += convertOffset(startOffset + getAttributeValue(StartOffset));
 
     if (iterator >= M_PI * 2.0)
         iterator -= M_PI * 2.0;
@@ -270,18 +278,18 @@ void EFX::calculatePoint(Function::Direction direction, int startOffset, qreal i
     calculatePoint(iterator, x, y);
 }
 
-void EFX::rotateAndScale(qreal* x, qreal* y) const
+void EFX::rotateAndScale(float* x, float* y) const
 {
-    qreal xx = *x;
-    qreal yy = *y;
-    qreal w = m_width * getAttributeValue(Width);
-    qreal h = m_height * getAttributeValue(Height);
+    float xx = *x;
+    float yy = *y;
+    float w = getAttributeValue(Width);
+    float h = getAttributeValue(Height);
 
-    *x = (m_xOffset * getAttributeValue(XOffset)) + xx * m_cosR * w + yy * m_sinR * h;
-    *y = (m_yOffset * getAttributeValue(YOffset)) + -xx * m_sinR * w + yy * m_cosR * h;
+    *x = (getAttributeValue(XOffset)) + xx * m_cosR * w + yy * m_sinR * h;
+    *y = (getAttributeValue(YOffset)) + -xx * m_sinR * w + yy * m_cosR * h;
 }
 
-qreal EFX::calculateDirection(Function::Direction direction, qreal iterator) const
+float EFX::calculateDirection(Function::Direction direction, float iterator) const
 {
     if (direction == this->direction())
         return iterator;
@@ -293,6 +301,9 @@ qreal EFX::calculateDirection(Function::Direction direction, qreal iterator) con
     case Eight:
     case Line2:
     case Diamond:
+    case Square:
+    case SquareChoppy:
+    case Leaf:
     case Lissajous:
         return (M_PI * 2.0) - iterator;
     case Line:
@@ -301,7 +312,7 @@ qreal EFX::calculateDirection(Function::Direction direction, qreal iterator) con
 }
 
 // this function should map from 0..M_PI * 2 -> -1..1
-void EFX::calculatePoint(qreal iterator, qreal* x, qreal* y) const
+void EFX::calculatePoint(float iterator, float* x, float* y) const
 {
     switch (algorithm())
     {
@@ -331,9 +342,66 @@ void EFX::calculatePoint(qreal iterator, qreal* x, qreal* y) const
         *y = pow(cos(iterator), 3);
         break;
 
+    case Square:
+        if (iterator < M_PI / 2)
+        {
+            *x = (iterator * 2 / M_PI) * 2 - 1;
+            *y = 1;
+        }
+        else if (M_PI / 2 <= iterator && iterator < M_PI)
+        {
+            *x = 1;
+            *y = (1 - (iterator - M_PI / 2) * 2 / M_PI) * 2 - 1;
+        }
+        else if (M_PI <= iterator && iterator < M_PI * 3 / 2)
+        {
+            *x = (1 - (iterator - M_PI) * 2 / M_PI) * 2 - 1;
+            *y = -1;
+        }
+        else // M_PI * 3 / 2 <= iterator
+        {
+            *x = -1;
+            *y = ((iterator - M_PI * 3 / 2) * 2 / M_PI) * 2 - 1;
+        }
+        break;
+
+    case SquareChoppy:
+        *x = round(cos(iterator));
+        *y = round(sin(iterator));
+        break;
+
+    case Leaf:
+        *x = pow(cos(iterator + M_PI_2), 5);
+        *y = cos(iterator);
+        break;
+
     case Lissajous:
-        *x = cos((m_xFrequency * iterator) - m_xPhase);
-        *y = cos((m_yFrequency * iterator) - m_yPhase);
+        {
+            if (m_xFrequency > 0)
+                *x = cos((m_xFrequency * iterator) - m_xPhase);
+            else
+            {
+                float iterator0 = ((iterator + m_xPhase) / M_PI);
+                int fff = iterator0;
+                iterator0 -= (fff - fff % 2);
+                float forward = 1 - floor(iterator0); // 1 when forward
+                float backward = 1 - forward; // 1 when backward
+                iterator0 = iterator0 - floor(iterator0);
+                *x = (forward * iterator0 + backward * (1 - iterator0)) * 2 - 1;
+            }
+            if (m_yFrequency > 0)
+                *y = cos((m_yFrequency * iterator) - m_yPhase);
+            else
+            {
+                float iterator0 = ((iterator + m_yPhase) / M_PI);
+                int fff = iterator0;
+                iterator0 -= (fff - fff % 2);
+                float forward = 1 - floor(iterator0); // 1 when forward
+                float backward = 1 - forward; // 1 when backward
+                iterator0 = iterator0 - floor(iterator0);
+                *y = (forward * iterator0 + backward * (1 - iterator0)) * 2 - 1;
+            }
+        }
         break;
     }
 
@@ -346,13 +414,13 @@ void EFX::calculatePoint(qreal iterator, qreal* x, qreal* y) const
 
 void EFX::setWidth(int width)
 {
-    m_width = static_cast<double> (CLAMP(width, 0, 127));
+    adjustAttribute(static_cast<double> (CLAMP(width, 0, 127)), Width);
     emit changed(this->id());
 }
 
 int EFX::width() const
 {
-    return static_cast<int> (m_width);
+    return static_cast<int> (attributes().at(Width).m_value);
 }
 
 /*****************************************************************************
@@ -361,13 +429,13 @@ int EFX::width() const
 
 void EFX::setHeight(int height)
 {
-    m_height = static_cast<double> (CLAMP(height, 0, 127));
+    adjustAttribute(static_cast<double> (CLAMP(height, 0, 127)), Height);
     emit changed(this->id());
 }
 
 int EFX::height() const
 {
-    return static_cast<int> (m_height);
+    return static_cast<int> (attributes().at(Height).m_value);
 }
 
 /*****************************************************************************
@@ -376,19 +444,19 @@ int EFX::height() const
 
 void EFX::setRotation(int rot)
 {
-    m_rotation = static_cast<int> (CLAMP(rot, 0, 359));
+    adjustAttribute(CLAMP(rot, 0, 359), Rotation);
     updateRotationCache();
     emit changed(this->id());
 }
 
 int EFX::rotation() const
 {
-    return static_cast<int> (m_rotation);
+    return static_cast<int> (attributes().at(Rotation).m_value);
 }
 
 void EFX::updateRotationCache()
 {
-    qreal r = M_PI/180 * m_rotation * getAttributeValue(Rotation);
+    double r = M_PI/180 * getAttributeValue(Rotation);
     m_cosR = cos(r);
     m_sinR = sin(r);
 }
@@ -399,16 +467,16 @@ void EFX::updateRotationCache()
 
 void EFX::setStartOffset(int startOffset)
 {
-    m_startOffset = CLAMP(startOffset, 0, 359);
+    adjustAttribute(CLAMP(startOffset, 0, 359), StartOffset);
     emit changed(this->id());
 }
 
 int EFX::startOffset() const
 {
-    return m_startOffset;
+    return static_cast<int> (attributes().at(StartOffset).m_value);
 }
 
-qreal EFX::convertOffset(int offset) const
+float EFX::convertOffset(int offset) const
 {
     return M_PI/180 * (offset % 360);
 }
@@ -434,24 +502,24 @@ bool EFX::isRelative() const
 
 void EFX::setXOffset(int offset)
 {
-    m_xOffset = static_cast<double> (CLAMP(offset, 0, UCHAR_MAX));
+    adjustAttribute(static_cast<double> (CLAMP(offset, 0, (int)UCHAR_MAX)), XOffset);
     emit changed(this->id());
 }
 
 int EFX::xOffset() const
 {
-    return static_cast<int> (m_xOffset);
+    return static_cast<int> (attributes().at(XOffset).m_value);
 }
 
 void EFX::setYOffset(int offset)
 {
-    m_yOffset = static_cast<double> (CLAMP(offset, 0, UCHAR_MAX));
+    adjustAttribute(static_cast<double> (CLAMP(offset, 0, (int)UCHAR_MAX)), YOffset);
     emit changed(this->id());
 }
 
 int EFX::yOffset() const
 {
-    return static_cast<int> (m_yOffset);
+    return static_cast<int> (attributes().at(YOffset).m_value);
 }
 
 /*****************************************************************************
@@ -460,7 +528,7 @@ int EFX::yOffset() const
 
 void EFX::setXFrequency(int freq)
 {
-    m_xFrequency = static_cast<qreal> (CLAMP(freq, 0, 5));
+    m_xFrequency = static_cast<float> (CLAMP(freq, 0, 32));
     emit changed(this->id());
 }
 
@@ -471,7 +539,7 @@ int EFX::xFrequency() const
 
 void EFX::setYFrequency(int freq)
 {
-    m_yFrequency = static_cast<qreal> (CLAMP(freq, 0, 5));
+    m_yFrequency = static_cast<float> (CLAMP(freq, 0, 32));
     emit changed(this->id());
 }
 
@@ -494,7 +562,7 @@ bool EFX::isFrequencyEnabled()
 
 void EFX::setXPhase(int phase)
 {
-    m_xPhase = static_cast<qreal> (CLAMP(phase, 0, 359)) * M_PI / 180.0;
+    m_xPhase = static_cast<float> (CLAMP(phase, 0, 359)) * M_PI / 180.0;
     emit changed(this->id());
 }
 
@@ -505,7 +573,7 @@ int EFX::xPhase() const
 
 void EFX::setYPhase(int phase)
 {
-    m_yPhase = static_cast<qreal> (CLAMP(phase, 0, 359)) * M_PI / 180.0;
+    m_yPhase = static_cast<float> (CLAMP(phase, 0, 359)) * M_PI / 180.0;
     emit changed(this->id());
 }
 
@@ -530,18 +598,22 @@ bool EFX::addFixture(EFXFixture* ef)
 {
     Q_ASSERT(ef != NULL);
 
-    /* Search for an existing fixture with the same ID to prevent multiple
-       entries of the same fixture. */
-    QListIterator <EFXFixture*> it(m_fixtures);
-    while (it.hasNext() == true)
+    /* Search for an existing fixture with the same ID and append at last but do
+     * not prevent multiple entries because a fixture can have multiple efx. */
+    //! @todo Prevent multiple entries using head & mode
+    int i;
+    for(i = 0; i < m_fixtures.size (); i++)
     {
-        /* Found the same fixture. Don't add the new one. */
-        if (it.next()->head() == ef->head())
-            return false;
+        if (m_fixtures[i]->head() == ef->head())
+        {
+            m_fixtures.insert(i, ef);
+            break;
+        }
     }
 
-    /* Put the EFXFixture object into our list */
-    m_fixtures.append(ef);
+    /* If not inserted, put the EFXFixture object into our list */
+    if(i >= m_fixtures.size())
+        m_fixtures.append(ef);
 
     emit changed(this->id());
 
@@ -561,6 +633,21 @@ bool EFX::removeFixture(EFXFixture* ef)
     {
         return false;
     }
+}
+
+bool EFX::removeFixture(quint32 fxi, int head)
+{
+    for (int i = 0; i < m_fixtures.count(); i++)
+    {
+        EFXFixture *ef = m_fixtures.at(i);
+        if (ef->head().fxi == fxi && ef->head().head == head)
+        {
+            m_fixtures.removeAt(i);
+            return true;
+        }
+    }
+
+    return false;
 }
 
 void EFX::removeAllFixtures()
@@ -604,6 +691,30 @@ bool EFX::lowerFixture(EFXFixture* ef)
 const QList <EFXFixture*> EFX::fixtures() const
 {
     return m_fixtures;
+}
+
+EFXFixture *EFX::fixture(quint32 id, int headIndex)
+{
+    foreach (EFXFixture *ef, m_fixtures)
+    {
+        if (ef->head().fxi == id && ef->head().head == headIndex)
+            return ef;
+    }
+
+    return NULL;
+}
+
+QList<quint32> EFX::components()
+{
+    QList<quint32> ids;
+
+    foreach (EFXFixture *ef, m_fixtures)
+    {
+        if (ids.contains(ef->head().fxi) == false)
+            ids.append(ef->head().fxi);
+    }
+
+    return ids;
 }
 
 void EFX::slotFixtureRemoved(quint32 fxi_id)
@@ -662,276 +773,210 @@ EFX::PropagationMode EFX::stringToPropagationMode(QString str)
  * Load & Save
  *****************************************************************************/
 
-bool EFX::saveXML(QDomDocument* doc, QDomElement* wksp_root)
+bool EFX::saveXML(QXmlStreamWriter *doc)
 {
-    QDomElement root;
-    QDomElement tag;
-    QDomElement subtag;
-    QDomText text;
-    QString str;
-
     Q_ASSERT(doc != NULL);
-    Q_ASSERT(wksp_root != NULL);
 
     /* Function tag */
-    root = doc->createElement(KXMLQLCFunction);
-    wksp_root->appendChild(root);
+    doc->writeStartElement(KXMLQLCFunction);
 
     /* Common attributes */
-    saveXMLCommon(&root);
+    saveXMLCommon(doc);
 
     /* Fixtures */
     QListIterator <EFXFixture*> it(m_fixtures);
     while (it.hasNext() == true)
-        it.next()->saveXML(doc, &root);
+        it.next()->saveXML(doc);
 
     /* Propagation mode */
-    tag = doc->createElement(KXMLQLCEFXPropagationMode);
-    root.appendChild(tag);
-    text = doc->createTextNode(propagationModeToString(m_propagationMode));
-    tag.appendChild(text);
+    doc->writeTextElement(KXMLQLCEFXPropagationMode, propagationModeToString(m_propagationMode));
 
     /* Speeds */
-    saveXMLSpeed(doc, &root);
-
+    saveXMLSpeed(doc);
     /* Direction */
-    saveXMLDirection(doc, &root);
-
+    saveXMLDirection(doc);
     /* Run order */
-    saveXMLRunOrder(doc, &root);
+    saveXMLRunOrder(doc);
 
     /* Algorithm */
-    tag = doc->createElement(KXMLQLCEFXAlgorithm);
-    root.appendChild(tag);
-    text = doc->createTextNode(algorithmToString(algorithm()));
-    tag.appendChild(text);
-
+    doc->writeTextElement(KXMLQLCEFXAlgorithm, algorithmToString(algorithm()));
     /* Width */
-    tag = doc->createElement(KXMLQLCEFXWidth);
-    root.appendChild(tag);
-    str.setNum(width());
-    text = doc->createTextNode(str);
-    tag.appendChild(text);
-
+    doc->writeTextElement(KXMLQLCEFXWidth, QString::number(width()));
     /* Height */
-    tag = doc->createElement(KXMLQLCEFXHeight);
-    root.appendChild(tag);
-    str.setNum(height());
-    text = doc->createTextNode(str);
-    tag.appendChild(text);
-
+    doc->writeTextElement(KXMLQLCEFXHeight, QString::number(height()));
     /* Rotation */
-    tag = doc->createElement(KXMLQLCEFXRotation);
-    root.appendChild(tag);
-    str.setNum(rotation());
-    text = doc->createTextNode(str);
-    tag.appendChild(text);
-
+    doc->writeTextElement(KXMLQLCEFXRotation, QString::number(rotation()));
     /* StartOffset */
-    tag = doc->createElement(KXMLQLCEFXStartOffset);
-    root.appendChild(tag);
-    str.setNum(startOffset());
-    text = doc->createTextNode(str);
-    tag.appendChild(text);
-
+    doc->writeTextElement(KXMLQLCEFXStartOffset, QString::number(startOffset()));
     /* IsRelative */
-    tag = doc->createElement(KXMLQLCEFXIsRelative);
-    root.appendChild(tag);
-    str.setNum(isRelative() ? 1 : 0);
-    text = doc->createTextNode(str);
-    tag.appendChild(text);
+    doc->writeTextElement(KXMLQLCEFXIsRelative, QString::number(isRelative() ? 1 : 0));
 
     /********************************************
      * X-Axis
      ********************************************/
-    tag = doc->createElement(KXMLQLCEFXAxis);
-    root.appendChild(tag);
-    tag.setAttribute(KXMLQLCFunctionName, KXMLQLCEFXX);
+    doc->writeStartElement(KXMLQLCEFXAxis);
+    doc->writeAttribute(KXMLQLCFunctionName, KXMLQLCEFXX);
 
     /* Offset */
-    subtag = doc->createElement(KXMLQLCEFXOffset);
-    tag.appendChild(subtag);
-    str.setNum(xOffset());
-    text = doc->createTextNode(str);
-    subtag.appendChild(text);
-
+    doc->writeTextElement(KXMLQLCEFXOffset, QString::number(xOffset()));
     /* Frequency */
-    subtag = doc->createElement(KXMLQLCEFXFrequency);
-    tag.appendChild(subtag);
-    str.setNum(xFrequency());
-    text = doc->createTextNode(str);
-    subtag.appendChild(text);
-
+    doc->writeTextElement(KXMLQLCEFXFrequency, QString::number(xFrequency()));
     /* Phase */
-    subtag = doc->createElement(KXMLQLCEFXPhase);
-    tag.appendChild(subtag);
-    str.setNum(xPhase());
-    text = doc->createTextNode(str);
-    subtag.appendChild(text);
+    doc->writeTextElement(KXMLQLCEFXPhase, QString::number(xPhase()));
+
+    /* End the (X) <Axis> tag */
+    doc->writeEndElement();
 
     /********************************************
      * Y-Axis
      ********************************************/
-    tag = doc->createElement(KXMLQLCEFXAxis);
-    root.appendChild(tag);
-    tag.setAttribute(KXMLQLCFunctionName, KXMLQLCEFXY);
+    doc->writeStartElement(KXMLQLCEFXAxis);
+    doc->writeAttribute(KXMLQLCFunctionName, KXMLQLCEFXY);
 
     /* Offset */
-    subtag = doc->createElement(KXMLQLCEFXOffset);
-    tag.appendChild(subtag);
-    str.setNum(yOffset());
-    text = doc->createTextNode(str);
-    subtag.appendChild(text);
-
+    doc->writeTextElement(KXMLQLCEFXOffset, QString::number(yOffset()));
     /* Frequency */
-    subtag = doc->createElement(KXMLQLCEFXFrequency);
-    tag.appendChild(subtag);
-    str.setNum(yFrequency());
-    text = doc->createTextNode(str);
-    subtag.appendChild(text);
-
+    doc->writeTextElement(KXMLQLCEFXFrequency, QString::number(yFrequency()));
     /* Phase */
-    subtag = doc->createElement(KXMLQLCEFXPhase);
-    tag.appendChild(subtag);
-    str.setNum(yPhase());
-    text = doc->createTextNode(str);
-    subtag.appendChild(text);
+    doc->writeTextElement(KXMLQLCEFXPhase, QString::number(yPhase()));
+
+    /* End the (Y) <Axis> tag */
+    doc->writeEndElement();
+
+    /* End the <Function> tag */
+    doc->writeEndElement();
 
     return true;
 }
 
-bool EFX::loadXML(const QDomElement& root)
+bool EFX::loadXML(QXmlStreamReader &root)
 {
-    if (root.tagName() != KXMLQLCFunction)
+    if (root.name() != KXMLQLCFunction)
     {
         qWarning() << "Function node not found!";
         return false;
     }
 
-    if (root.attribute(KXMLQLCFunctionType) != typeToString(Function::EFX))
+    if (root.attributes().value(KXMLQLCFunctionType).toString() != typeToString(Function::EFXType))
     {
         qWarning("Function is not an EFX!");
         return false;
     }
 
     /* Load EFX contents */
-    QDomNode node = root.firstChild();
-    while (node.isNull() == false)
+    while (root.readNextStartElement())
     {
-        QDomElement tag = node.toElement();
-
-        if (tag.tagName() == KXMLQLCBus)
+        if (root.name() == KXMLQLCBus)
         {
             /* Bus */
-            QString str = tag.attribute(KXMLQLCBusRole);
+            QString str = root.attributes().value(KXMLQLCBusRole).toString();
             if (str == KXMLQLCBusFade)
-                m_legacyFadeBus = tag.text().toUInt();
+                m_legacyFadeBus = root.readElementText().toUInt();
             else if (str == KXMLQLCBusHold)
-                m_legacyHoldBus = tag.text().toUInt();
+                m_legacyHoldBus = root.readElementText().toUInt();
         }
-        else if (tag.tagName() == KXMLQLCFunctionSpeed)
+        else if (root.name() == KXMLQLCFunctionSpeed)
         {
-            loadXMLSpeed(tag);
+            loadXMLSpeed(root);
         }
-        else if (tag.tagName() == KXMLQLCEFXFixture)
+        else if (root.name() == KXMLQLCEFXFixture)
         {
             EFXFixture* ef = new EFXFixture(this);
-            ef->loadXML(tag);
+            ef->loadXML(root);
             if (ef->head().isValid())
             {
                 if (addFixture(ef) == false)
                     delete ef;
             }
         }
-        else if (tag.tagName() == KXMLQLCEFXPropagationMode)
+        else if (root.name() == KXMLQLCEFXPropagationMode)
         {
             /* Propagation mode */
-            setPropagationMode(stringToPropagationMode(tag.text()));
+            setPropagationMode(stringToPropagationMode(root.readElementText()));
         }
-        else if (tag.tagName() == KXMLQLCEFXAlgorithm)
+        else if (root.name() == KXMLQLCEFXAlgorithm)
         {
             /* Algorithm */
-            setAlgorithm(stringToAlgorithm(tag.text()));
+            setAlgorithm(stringToAlgorithm(root.readElementText()));
         }
-        else if (tag.tagName() == KXMLQLCFunctionDirection)
+        else if (root.name() == KXMLQLCFunctionDirection)
         {
-            loadXMLDirection(tag);
+            loadXMLDirection(root);
         }
-        else if (tag.tagName() == KXMLQLCFunctionRunOrder)
+        else if (root.name() == KXMLQLCFunctionRunOrder)
         {
-            loadXMLRunOrder(tag);
+            loadXMLRunOrder(root);
         }
-        else if (tag.tagName() == KXMLQLCEFXWidth)
+        else if (root.name() == KXMLQLCEFXWidth)
         {
             /* Width */
-            setWidth(tag.text().toInt());
+            setWidth(root.readElementText().toInt());
         }
-        else if (tag.tagName() == KXMLQLCEFXHeight)
+        else if (root.name() == KXMLQLCEFXHeight)
         {
             /* Height */
-            setHeight(tag.text().toInt());
+            setHeight(root.readElementText().toInt());
         }
-        else if (tag.tagName() == KXMLQLCEFXRotation)
+        else if (root.name() == KXMLQLCEFXRotation)
         {
             /* Rotation */
-            setRotation(tag.text().toInt());
+            setRotation(root.readElementText().toInt());
         }
-        else if (tag.tagName() == KXMLQLCEFXStartOffset)
+        else if (root.name() == KXMLQLCEFXStartOffset)
         {
             /* StartOffset */
-            setStartOffset(tag.text().toInt());
+            setStartOffset(root.readElementText().toInt());
         }
-        else if (tag.tagName() == KXMLQLCEFXIsRelative)
+        else if (root.name() == KXMLQLCEFXIsRelative)
         {
             /* IsRelative */
-            setIsRelative(tag.text().toInt() != 0);
+            setIsRelative(root.readElementText().toInt() != 0);
         }
-        else if (tag.tagName() == KXMLQLCEFXAxis)
+        else if (root.name() == KXMLQLCEFXAxis)
         {
             /* Axes */
-            loadXMLAxis(tag);
+            loadXMLAxis(root);
         }
         else
         {
-            qWarning() << "Unknown EFX tag:" << tag.tagName();
+            qWarning() << "Unknown EFX tag:" << root.name();
+            root.skipCurrentElement();
         }
-
-        node = node.nextSibling();
     }
 
     return true;
 }
 
-bool EFX::loadXMLAxis(const QDomElement& root)
+bool EFX::loadXMLAxis(QXmlStreamReader &root)
 {
     int frequency = 0;
     int offset = 0;
     int phase = 0;
     QString axis;
 
-    if (root.tagName() != KXMLQLCEFXAxis)
+    if (root.name() != KXMLQLCEFXAxis)
     {
         qWarning() << "EFX axis node not found!";
         return false;
     }
 
     /* Get the axis name */
-    axis = root.attribute(KXMLQLCFunctionName);
+    axis = root.attributes().value(KXMLQLCFunctionName).toString();
 
     /* Load axis contents */
-    QDomNode node = root.firstChild();
-    while (node.isNull() == false)
+    while (root.readNextStartElement())
     {
-        QDomElement tag = node.toElement();
-        if (tag.tagName() == KXMLQLCEFXOffset)
-            offset = tag.text().toInt();
-        else if (tag.tagName() == KXMLQLCEFXFrequency)
-            frequency = tag.text().toInt();
-        else if (tag.tagName() == KXMLQLCEFXPhase)
-            phase = tag.text().toInt();
+        if (root.name() == KXMLQLCEFXOffset)
+            offset = root.readElementText().toInt();
+        else if (root.name() == KXMLQLCEFXFrequency)
+            frequency = root.readElementText().toInt();
+        else if (root.name() == KXMLQLCEFXPhase)
+            phase = root.readElementText().toInt();
         else
-            qWarning() << "Unknown EFX axis tag:" << tag.tagName();
-        node = node.nextSibling();
+        {
+            qWarning() << "Unknown EFX axis tag:" << root.name();
+            root.skipCurrentElement();
+        }
     }
 
     if (axis == KXMLQLCEFXY)
@@ -975,6 +1020,22 @@ void EFX::postLoad()
 /*****************************************************************************
  * Running
  *****************************************************************************/
+QSharedPointer<GenericFader> EFX::getFader(QList<Universe *> universes, quint32 universeID)
+{
+    // get the universe Fader first. If doesn't exist, create it
+    QSharedPointer<GenericFader> fader = m_fadersMap.value(universeID, QSharedPointer<GenericFader>());
+    if (fader.isNull())
+    {
+        fader = universes[universeID]->requestFader();
+        fader->adjustIntensity(getAttributeValue(Intensity));
+        fader->setBlendMode(blendMode());
+        fader->setName(name());
+        fader->setParentFunctionID(id());
+        m_fadersMap[universeID] = fader;
+    }
+
+    return fader;
+}
 
 void EFX::preRun(MasterTimer* timer)
 {
@@ -988,37 +1049,47 @@ void EFX::preRun(MasterTimer* timer)
         ef->setSerialNumber(serialNumber++);
     }
 
-    Q_ASSERT(m_fader == NULL);
-    m_fader = new GenericFader(doc());
+    //Q_ASSERT(m_fader == NULL);
+    //m_fader = new GenericFader(doc());
+    //m_fader->adjustIntensity(getAttributeValue(Intensity));
+    //m_fader->setBlendMode(blendMode());
 
     Function::preRun(timer);
 }
 
-void EFX::write(MasterTimer* timer, QList<Universe*> universes)
+void EFX::write(MasterTimer *timer, QList<Universe*> universes)
 {
+    Q_UNUSED(timer);
+
     int ready = 0;
 
-    Q_UNUSED(timer);
+    if (isPaused())
+        return;
 
     QListIterator <EFXFixture*> it(m_fixtures);
     while (it.hasNext() == true)
     {
-        EFXFixture* ef = it.next();
+        EFXFixture *ef = it.next();
         if (ef->isReady() == false)
-            ef->nextStep(timer, universes);
+        {
+            QSharedPointer<GenericFader> fader = getFader(universes, ef->universe());
+            ef->nextStep(universes, fader);
+        }
         else
+        {
             ready++;
+        }
     }
 
     incrementElapsed();
 
     /* Check for stop condition */
     if (ready == m_fixtures.count())
-        stop();
-    m_fader->write(universes);
+        stop(FunctionParent::master());
+    //m_fader->write(universes);
 }
 
-void EFX::postRun(MasterTimer* timer, QList<Universe *> universes)
+void EFX::postRun(MasterTimer *timer, QList<Universe *> universes)
 {
     /* Reset all fixtures */
     QListIterator <EFXFixture*> it(m_fixtures);
@@ -1028,14 +1099,11 @@ void EFX::postRun(MasterTimer* timer, QList<Universe *> universes)
 
         /* Run the EFX's stop scene for Loop & PingPong modes */
         if (runOrder() != SingleShot)
-            ef->stop(timer, universes);
+            ef->stop();
         ef->reset();
     }
 
-    Q_ASSERT(m_fader != NULL);
-    m_fader->removeAll();
-    delete m_fader;
-    m_fader = NULL;
+    dismissAllFaders();
 
     Function::postRun(timer, universes);
 }
@@ -1044,20 +1112,18 @@ void EFX::postRun(MasterTimer* timer, QList<Universe *> universes)
  * Intensity
  *****************************************************************************/
 
-void EFX::adjustAttribute(qreal fraction, int attributeIndex)
+int EFX::adjustAttribute(qreal fraction, int attributeId)
 {
-    switch (attributeIndex)
+    int attrIndex = Function::adjustAttribute(fraction, attributeId);
+
+    switch (attrIndex)
     {
         case Intensity:
         {
-            if (m_fader != NULL)
-                m_fader->adjustIntensity(fraction);
-
-            QListIterator <EFXFixture*> it(m_fixtures);
-            while (it.hasNext() == true)
+            foreach (QSharedPointer<GenericFader> fader, m_fadersMap.values())
             {
-                EFXFixture* ef = it.next();
-                ef->adjustIntensity(fraction);
+                if (!fader.isNull())
+                    fader->adjustIntensity(getAttributeValue(Function::Intensity));
             }
         }
         break;
@@ -1067,11 +1133,27 @@ void EFX::adjustAttribute(qreal fraction, int attributeIndex)
         case XOffset:
         case YOffset:
         case Rotation:
+            updateRotationCache();
         break;
     }
 
-    Function::adjustAttribute(fraction, attributeIndex);
+    return attrIndex;
+}
 
-    if (attributeIndex == Rotation)
-        updateRotationCache();
+/*************************************************************************
+ * Blend mode
+ *************************************************************************/
+
+void EFX::setBlendMode(Universe::BlendMode mode)
+{
+    if (mode == blendMode())
+        return;
+
+    foreach (QSharedPointer<GenericFader> fader, m_fadersMap.values())
+    {
+        if (!fader.isNull())
+            fader->setBlendMode(mode);
+    }
+
+    Function::setBlendMode(mode);
 }

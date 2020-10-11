@@ -1,8 +1,9 @@
 /*
-  Q Light Controller
+  Q Light Controller Plus
   simpledeskengine.h
 
   Copyright (c) Heikki Junnila
+                Massimo Callegari
 
   Licensed under the Apache License, Version 2.0 (the "License");
   you may not use this file except in compliance with the License.
@@ -24,14 +25,16 @@
 #include <QMutex>
 #include <QHash>
 #include <QList>
+#include <QMap>
 
 #include "dmxsource.h"
 #include "cue.h"
 
-class UniverseArray;
-class QDomDocument;
-class QDomElement;
+class QXmlStreamReader;
+class QXmlStreamWriter;
+class GenericFader;
 class MasterTimer;
+class FadeChannel;
 class CueStack;
 class Doc;
 
@@ -56,13 +59,18 @@ public:
     void clearContents();
 
 private:
-    /** Get the parent Doc object */
-    Doc* doc() const;
+    Doc *m_doc;
 
     /************************************************************************
      * Universe Values
      ************************************************************************/
 public:
+    enum SimpleDeskCommand
+    {
+        ResetChannel,
+        ResetUniverse
+    };
+
     /** Set the value of a single channel */
     void setValue(uint channel, uchar value);
 
@@ -80,8 +88,17 @@ public:
     /** Reset the values of the given universe to zero */
     void resetUniverse(int universe);
 
+    /** Reset the value of the specified channel */
+    void resetChannel(uint channel);
+
 private:
+    /** A map of channel absolute addresses and their values.
+      * Note that only channels overridden by Simple Desk are here */
     QHash <uint,uchar> m_values;
+
+    /** A list of commands to be executed on writeDMX.
+     *  This is used to sync reset requests with mastertimer ticks */
+    QList< QPair<int,quint32> > m_commandQueue;
 
     /************************************************************************
      * Cue Stacks
@@ -117,10 +134,10 @@ private:
      ************************************************************************/
 public:
     /** Load SimpleDeskEngine contents from the given XML $root tag */
-    bool loadXML(const QDomElement& root);
+    bool loadXML(QXmlStreamReader &root);
 
-    /** Save SimpleDeskEngine content to the given XML $doc, under $wksp_root */
-    bool saveXML(QDomDocument* doc, QDomElement* wksp_root) const;
+    /** Save SimpleDeskEngine content to the given XML $doc */
+    bool saveXML(QXmlStreamWriter *doc) const;
 
     /************************************************************************
      * DMXSource
@@ -129,6 +146,13 @@ public:
     /** @reimpl */
     void writeDMX(MasterTimer* timer, QList<Universe*> ua);
 
+private:
+    FadeChannel *getFader(QList<Universe *> universes, quint32 universeID,
+                          quint32 fixtureID, quint32 channel);
+
+private:
+    /** Map used to lookup a GenericFader instance for a Universe ID */
+    QMap<quint32, QSharedPointer<GenericFader> > m_fadersMap;
 };
 
 /** @} */

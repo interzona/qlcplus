@@ -4,7 +4,7 @@ TEMPLATE = app
 LANGUAGE = C++
 TARGET   = chaserrunner_test
 
-QT      += testlib xml script
+QT      += testlib
 CONFIG  -= app_bundle
 
 DEPENDPATH   += ../../src
@@ -15,4 +15,5 @@ QMAKE_LIBDIR += ../../src
 LIBS         += -lqlcplusengine
 
 SOURCES += chaserrunner_test.cpp ../mastertimer/mastertimer_stub.cpp
-HEADERS += chaserrunner_test.h ../mastertimer/mastertimer_stub.h
+HEADERS += chaserrunner_test.h ../mastertimer/mastertimer_stub.h ../common/resource_paths.h
+

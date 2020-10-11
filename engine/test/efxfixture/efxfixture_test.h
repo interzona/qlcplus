@@ -46,19 +46,28 @@ private slots:
     void serialNumber();
     void isValid();
     void reset();
+    void startOffset();
 
     void setPoint8bit();
     void setPoint16bit();
-    void startOffset();
+    void setPointPanOnly();
+    void setPointLedBar();
+
     void nextStepLoop();
     void nextStepLoopZeroDuration();
     void nextStepSingleShot();
 
-    void start();
-    void stop();
-
 private:
     Doc* m_doc;
+
+    int m_fixture8bit;
+    int m_fixture8bitAddress;
+    int m_fixture16bit;
+    int m_fixture16bitAddress;
+    int m_fixturePanOnly;
+    int m_fixturePanOnlyAddress;
+    int m_fixtureLedBar;
+    int m_fixtureLedBarAddress;
 };
 
 #endif

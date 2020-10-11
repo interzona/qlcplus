@@ -1,36 +1,42 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!DOCTYPE TS>
-<TS version="2.0" language="de_DE">
+<TS version="2.1" language="de_DE">
 <context>
     <name>DMXUSB</name>
     <message>
-        <location filename="dmxusb.cpp" line="134"/>
+        <location filename="dmxusb.cpp" line="139"/>
         <source>This plugin provides DMX output support for</source>
         <translation>Dieses Plugin bietet DMX-Ausgabesupport für</translation>
     </message>
     <message>
-        <location filename="dmxusb.cpp" line="137"/>
+        <location filename="dmxusb.cpp" line="143"/>
         <source>and compatible devices.</source>
         <translation>Keine Geräte verfügbar.</translation>
     </message>
     <message>
-        <location filename="dmxusb.cpp" line="151"/>
+        <location filename="dmxusb.cpp" line="157"/>
         <source>No output support available.</source>
         <translation>Keine Ausgabeunterstützung verfügbar.</translation>
     </message>
     <message>
-        <location filename="dmxusb.cpp" line="153"/>
+        <location filename="dmxusb.cpp" line="159"/>
         <source>Make sure that you have your hardware firmly plugged in. NOTE: FTDI VCP interface is not supported by this plugin.</source>
         <translation>Stellen Sie sicher, dass Sie Ihre Hardware fest eingesteckt haben. FTDI VCP Schnittstelle ist nicht durch dieses Plugin unterstützt.</translation>
     </message>
     <message>
-        <location filename="dmxusb.cpp" line="162"/>
-        <location filename="dmxusb.cpp" line="231"/>
+        <location filename="dmxusb.cpp" line="168"/>
+        <location filename="dmxusb.cpp" line="272"/>
         <source>Device is operating correctly.</source>
         <translation>Gerät ist funktionsfähig.</translation>
     </message>
     <message>
-        <location filename="dmxusb.cpp" line="218"/>
+        <location filename="dmxusb.cpp" line="170"/>
+        <location filename="dmxusb.cpp" line="274"/>
+        <source>Driver in use: %1</source>
+        <translation>Verwendeter Treiber: %1</translation>
+    </message>
+    <message>
+        <location filename="dmxusb.cpp" line="259"/>
         <source>No input support available.</source>
         <translation>Keine Eingabeunterstützung verfügbar.</translation>
     </message>
@@ -38,103 +44,210 @@
 <context>
     <name>DMXUSBConfig</name>
     <message>
-        <location filename="dmxusbconfig.cpp" line="44"/>
+        <location filename="dmxusbconfig.cpp" line="47"/>
         <source>Refresh</source>
         <translation>Aktualisieren</translation>
     </message>
     <message>
-        <location filename="dmxusbconfig.cpp" line="45"/>
+        <location filename="dmxusbconfig.cpp" line="48"/>
         <source>Close</source>
-        <translation>Schliessen</translation>
+        <translation>Schließen</translation>
     </message>
     <message>
-        <location filename="dmxusbconfig.cpp" line="53"/>
+        <location filename="dmxusbconfig.cpp" line="55"/>
         <source>Name</source>
         <translation>Name</translation>
     </message>
     <message>
-        <location filename="dmxusbconfig.cpp" line="53"/>
+        <location filename="dmxusbconfig.cpp" line="55"/>
         <source>Serial</source>
         <translation>Seriennummer</translation>
     </message>
+    <message>
+        <location filename="dmxusbconfig.cpp" line="55"/>
+        <source>Mode</source>
+        <translation>Modus</translation>
+    </message>
+    <message>
+        <location filename="dmxusbconfig.cpp" line="55"/>
+        <source>Output frequency</source>
+        <translation>Ausgabefrequenz</translation>
+    </message>
 </context>
 <context>
-    <name>EnttecDMXUSBOpen</name>
+    <name>DMXUSBOpenRx</name>
     <message>
-        <location filename="enttecdmxusbopen.cpp" line="96"/>
+        <location filename="dmxusbopenrx.cpp" line="124"/>
         <source>Protocol</source>
         <translation>Protokoll</translation>
     </message>
     <message>
-        <location filename="enttecdmxusbopen.cpp" line="101"/>
+        <location filename="dmxusbopenrx.cpp" line="130"/>
+        <source>Stopped</source>
+        <translation>Gestoppt</translation>
+    </message>
+    <message>
+        <location filename="dmxusbopenrx.cpp" line="132"/>
+        <source>Idling</source>
+        <translation>Leerlauf</translation>
+    </message>
+    <message>
+        <location filename="dmxusbopenrx.cpp" line="134"/>
+        <source>Calibrating</source>
+        <translation>Kalibrierung</translation>
+    </message>
+    <message>
+        <location filename="dmxusbopenrx.cpp" line="136"/>
+        <source>Receiving</source>
+        <translation>Empfangen</translation>
+    </message>
+    <message>
+        <location filename="dmxusbopenrx.cpp" line="138"/>
+        <source>Receiver state</source>
+        <translation>Empfängerstatus</translation>
+    </message>
+    <message>
+        <location filename="dmxusbopenrx.cpp" line="143"/>
+        <source>Received DMX Channels</source>
+        <translation>Empfangene DMX Kanäle</translation>
+    </message>
+    <message>
+        <location filename="dmxusbopenrx.cpp" line="148"/>
         <source>DMX Frame Frequency</source>
         <translation>Frequenz der DMX-Frames</translation>
     </message>
     <message>
-        <location filename="enttecdmxusbopen.cpp" line="105"/>
+        <location filename="dmxusbopenrx.cpp" line="154"/>
         <source>Bad</source>
         <translation>Schlecht</translation>
     </message>
     <message>
-        <location filename="enttecdmxusbopen.cpp" line="107"/>
+        <location filename="dmxusbopenrx.cpp" line="156"/>
         <source>Good</source>
         <translation>Gut</translation>
     </message>
     <message>
-        <location filename="enttecdmxusbopen.cpp" line="109"/>
+        <location filename="dmxusbopenrx.cpp" line="158"/>
         <source>Patch this widget to a universe to find out.</source>
         <translation>Dieses Geräte mit einem Universum verbinden um es herauszufinden.</translation>
     </message>
     <message>
-        <location filename="enttecdmxusbopen.cpp" line="110"/>
+        <location filename="dmxusbopenrx.cpp" line="160"/>
         <source>System Timer Accuracy</source>
         <translation>System-Timer Genauigkeit</translation>
     </message>
 </context>
 <context>
-    <name>QObject</name>
+    <name>EnttecDMXUSBOpen</name>
     <message>
-        <location filename="dmx4all.cpp" line="129"/>
-        <location filename="enttecdmxusbprorx.cpp" line="84"/>
-        <location filename="enttecdmxusbprotx.cpp" line="127"/>
-        <location filename="ultradmxusbprotx.cpp" line="73"/>
+        <location filename="enttecdmxusbopen.cpp" line="118"/>
         <source>Protocol</source>
         <translation>Protokoll</translation>
     </message>
     <message>
-        <location filename="dmx4all.cpp" line="136"/>
-        <location filename="enttecdmxusbprorx.cpp" line="91"/>
-        <location filename="enttecdmxusbprotx.cpp" line="134"/>
-        <location filename="ultradmxusbprotx.cpp" line="80"/>
+        <location filename="enttecdmxusbopen.cpp" line="123"/>
+        <source>DMX Channels</source>
+        <translation>DMX Kanäle</translation>
+    </message>
+    <message>
+        <location filename="enttecdmxusbopen.cpp" line="126"/>
+        <source>DMX Frame Frequency</source>
+        <translation>Frequenz der DMX-Frames</translation>
+    </message>
+    <message>
+        <location filename="enttecdmxusbopen.cpp" line="130"/>
+        <source>Bad</source>
+        <translation>Schlecht</translation>
+    </message>
+    <message>
+        <location filename="enttecdmxusbopen.cpp" line="132"/>
+        <source>Good</source>
+        <translation>Gut</translation>
+    </message>
+    <message>
+        <location filename="enttecdmxusbopen.cpp" line="134"/>
+        <source>Patch this widget to a universe to find out.</source>
+        <translation>Dieses Geräte mit einem Universum verbinden um es herauszufinden.</translation>
+    </message>
+    <message>
+        <location filename="enttecdmxusbopen.cpp" line="135"/>
+        <source>System Timer Accuracy</source>
+        <translation>System-Timer Genauigkeit</translation>
+    </message>
+</context>
+<context>
+    <name>EnttecDMXUSBPro</name>
+    <message>
+        <location filename="enttecdmxusbpro.cpp" line="94"/>
+        <location filename="enttecdmxusbpro.cpp" line="96"/>
+        <source>Protocol</source>
+        <translation>Protokoll</translation>
+    </message>
+    <message>
+        <location filename="enttecdmxusbpro.cpp" line="99"/>
+        <source>Manufacturer</source>
+        <translation>Hersteller</translation>
+    </message>
+    <message>
+        <location filename="enttecdmxusbpro.cpp" line="101"/>
+        <source>Serial number</source>
+        <translation>Seriennummer</translation>
+    </message>
+</context>
+<context>
+    <name>QObject</name>
+    <message>
+        <location filename="euroliteusbdmxpro.cpp" line="171"/>
+        <location filename="nanodmx.cpp" line="236"/>
+        <location filename="stageprofi.cpp" line="141"/>
+        <location filename="vinceusbdmx512.cpp" line="47"/>
+        <source>Protocol</source>
+        <translation>Protokoll</translation>
+    </message>
+    <message>
+        <location filename="euroliteusbdmxpro.cpp" line="178"/>
+        <location filename="nanodmx.cpp" line="243"/>
+        <location filename="stageprofi.cpp" line="148"/>
+        <location filename="vinceusbdmx512.cpp" line="51"/>
         <source>Serial number</source>
         <translation>Seriennummer</translation>
     </message>
     <message>
-        <location filename="enttecdmxusbprorx.cpp" line="48"/>
-        <location filename="enttecdmxusbprorx.cpp" line="50"/>
-        <location filename="enttecdmxusbprorx.cpp" line="86"/>
-        <source>Input</source>
-        <translation>Eingabe</translation>
-    </message>
-    <message>
-        <location filename="dmx4all.cpp" line="131"/>
-        <location filename="enttecdmxusbprotx.cpp" line="70"/>
-        <location filename="enttecdmxusbprotx.cpp" line="72"/>
-        <location filename="enttecdmxusbprotx.cpp" line="129"/>
-        <location filename="ultradmxusbprotx.cpp" line="59"/>
-        <location filename="ultradmxusbprotx.cpp" line="61"/>
-        <location filename="ultradmxusbprotx.cpp" line="75"/>
+        <location filename="euroliteusbdmxpro.cpp" line="173"/>
+        <location filename="nanodmx.cpp" line="238"/>
+        <location filename="stageprofi.cpp" line="143"/>
+        <location filename="vinceusbdmx512.cpp" line="49"/>
         <source>Output</source>
         <translation>Ausgabe</translation>
     </message>
     <message>
-        <location filename="dmx4all.cpp" line="133"/>
-        <location filename="enttecdmxusbopen.cpp" line="98"/>
-        <location filename="enttecdmxusbprorx.cpp" line="88"/>
-        <location filename="enttecdmxusbprotx.cpp" line="131"/>
-        <location filename="ultradmxusbprotx.cpp" line="77"/>
+        <location filename="dmxusbopenrx.cpp" line="126"/>
+        <location filename="enttecdmxusbopen.cpp" line="120"/>
+        <location filename="euroliteusbdmxpro.cpp" line="175"/>
+        <location filename="nanodmx.cpp" line="240"/>
+        <location filename="stageprofi.cpp" line="145"/>
         <source>Manufacturer</source>
         <translation>Hersteller</translation>
+    </message>
+    <message>
+        <location filename="enttecdmxusbpro.cpp" line="237"/>
+        <source>MIDI Input</source>
+        <translation>MIDI Eingang</translation>
+    </message>
+    <message>
+        <location filename="enttecdmxusbpro.cpp" line="239"/>
+        <source>DMX Input</source>
+        <translation>DMX Eingang</translation>
+    </message>
+    <message>
+        <location filename="enttecdmxusbpro.cpp" line="244"/>
+        <source>MIDI Output</source>
+        <translation>MIDI Ausgang</translation>
+    </message>
+    <message>
+        <location filename="enttecdmxusbpro.cpp" line="246"/>
+        <source>DMX Output</source>
+        <translation>DMX Ausgang</translation>
     </message>
 </context>
 </TS>

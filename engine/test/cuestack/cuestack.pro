@@ -4,7 +4,7 @@ TEMPLATE = app
 LANGUAGE = C++
 TARGET   = cuestack_test
 
-QT      += testlib xml script
+QT      += testlib
 CONFIG  -= app_bundle
 
 DEPENDPATH   += ../../src
@@ -14,4 +14,5 @@ QMAKE_LIBDIR += ../../src
 LIBS         += -lqlcplusengine
 
 SOURCES += cuestack_test.cpp
-HEADERS += cuestack_test.h
+HEADERS += cuestack_test.h ../common/resource_paths.h
+

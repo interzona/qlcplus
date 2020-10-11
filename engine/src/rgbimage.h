@@ -4,6 +4,7 @@
 
   Copyright (c) Heikki Junnila
   Copyright (c) Jano Svitok
+  Copyright (c) Massimo Callegari
 
   Licensed under the Apache License, Version 2.0 (the "License");
   you may not use this file except in compliance with the License.
@@ -21,17 +22,23 @@
 #ifndef RGBIMAGE_H
 #define RGBIMAGE_H
 
+#include <QMutexLocker>
 #include <QString>
+#include <QMovie>
 #include <QImage>
 
 #include "rgbalgorithm.h"
+
+/** @addtogroup engine_functions Functions
+ * @{
+ */
 
 #define KXMLQLCRGBImage "Image"
 
 class RGBImage : public RGBAlgorithm
 {
 public:
-    RGBImage(const Doc * doc);
+    RGBImage(Doc * doc);
     RGBImage(const RGBImage& t);
     ~RGBImage();
 
@@ -48,13 +55,21 @@ public:
     /** Get filename of the image */
     QString filename() const;
 
+    /** Set the image data from an array of RGB888 values */
+    void setImageData(int width, int height, const QByteArray& pixelData);
+
+    bool animatedSource() const;
+
 private:
 
     void reloadImage();
 
 private:
     QString m_filename;
+    bool m_animatedSource;
+    QMovie m_animatedPlayer;
     QImage m_image;
+    QMutex m_mutex;
 
     /************************************************************************
      * Animation
@@ -88,7 +103,7 @@ public:
     int rgbMapStepCount(const QSize& size);
 
     /** @reimp */
-    RGBMap rgbMap(const QSize& size, uint rgb, int step);
+    void rgbMap(const QSize& size, uint rgb, int step, RGBMap &map);
 
     /** @reimp */
     QString name() const;
@@ -103,10 +118,15 @@ public:
     RGBAlgorithm::Type type() const;
 
     /** @reimp */
-    bool loadXML(const QDomElement& root);
+    int acceptColors() const;
 
     /** @reimp */
-    bool saveXML(QDomDocument* doc, QDomElement* mtx_root) const;
+    bool loadXML(QXmlStreamReader &root);
+
+    /** @reimp */
+    bool saveXML(QXmlStreamWriter *doc) const;
 };
+
+/** @} */
 
 #endif

@@ -1,8 +1,9 @@
 /*
-  Q Light Controller
+  Q Light Controller Plus
   rgbtext.h
 
   Copyright (c) Heikki Junnila
+                Massimo Callegari
 
   Licensed under the Apache License, Version 2.0 (the "License");
   you may not use this file except in compliance with the License.
@@ -25,7 +26,7 @@
 
 #include "rgbalgorithm.h"
 
-/** @addtogroup engine Engine
+/** @addtogroup engine_functions Functions
  * @{
  */
 
@@ -34,7 +35,7 @@
 class RGBText : public RGBAlgorithm
 {
 public:
-    RGBText(const Doc * doc);
+    RGBText(Doc * doc);
     RGBText(const RGBText& t);
     ~RGBText();
 
@@ -82,8 +83,8 @@ public:
 
 private:
     int scrollingTextStepCount() const;
-    RGBMap renderScrollingText(const QSize& size, uint rgb, int step) const;
-    RGBMap renderStaticLetters(const QSize& size, uint rgb, int step) const;
+    void renderScrollingText(const QSize& size, uint rgb, int step, RGBMap &map) const;
+    void renderStaticLetters(const QSize& size, uint rgb, int step, RGBMap &map) const;
 
 private:
     AnimationStyle m_animationStyle;
@@ -98,7 +99,7 @@ public:
     int rgbMapStepCount(const QSize& size);
 
     /** @reimp */
-    RGBMap rgbMap(const QSize& size, uint rgb, int step);
+    void rgbMap(const QSize& size, uint rgb, int step, RGBMap &map);
 
     /** @reimp */
     QString name() const;
@@ -113,10 +114,13 @@ public:
     RGBAlgorithm::Type type() const;
 
     /** @reimp */
-    bool loadXML(const QDomElement& root);
+    int acceptColors() const;
 
     /** @reimp */
-    bool saveXML(QDomDocument* doc, QDomElement* mtx_root) const;
+    bool loadXML(QXmlStreamReader &root);
+
+    /** @reimp */
+    bool saveXML(QXmlStreamWriter *doc) const;
 };
 
 /** @} */

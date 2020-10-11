@@ -22,12 +22,14 @@
 
 #include <QScriptValue>
 #include "rgbalgorithm.h"
+#include "rgbscriptproperty.h"
 
 class QScriptEngine;
 class QSize;
 class QDir;
+class QMutex;
 
-/** @addtogroup engine Engine
+/** @addtogroup engine_functions Functions
  * @{
  */
 
@@ -39,9 +41,11 @@ class RGBScript : public RGBAlgorithm
      * Initialization
      ************************************************************************/
 public:
-    RGBScript(const Doc * doc);
+    RGBScript(Doc *doc);
     RGBScript(const RGBScript& s);
     ~RGBScript();
+
+    RGBScript& operator=(const RGBScript& s);
 
     /** Comparison operator. Uses simply fileName() == s.fileName(). */
     bool operator==(const RGBScript& s) const;
@@ -63,9 +67,14 @@ public:
     bool evaluate();
 
 private:
-    static QScriptEngine* s_engine; //! The engine that runs all scripts
+    static QScriptEngine *s_engine; //! The engine that runs all scripts
+    static QMutex *s_engineMutex;   //! Protection
     QString m_fileName;             //! The file name that contains this script
     QString m_contents;             //! The file's contents
+
+private:
+    /** Init engine, engine mutex, and scripts map */
+    static void initEngine();
 
     /************************************************************************
      * RGBAlgorithm API
@@ -75,7 +84,7 @@ public:
     int rgbMapStepCount(const QSize& size);
 
     /** @reimp */
-    RGBMap rgbMap(const QSize& size, uint rgb, int step);
+    void rgbMap(const QSize& size, uint rgb, int step, RGBMap &map);
 
     /** @reimp */
     QString name() const;
@@ -90,10 +99,13 @@ public:
     RGBAlgorithm::Type type() const;
 
     /** @reimp */
-    bool loadXML(const QDomElement& root);
+    int acceptColors() const;
 
     /** @reimp */
-    bool saveXML(QDomDocument* Doc, QDomElement* mtx_root) const;
+    bool loadXML(QXmlStreamReader &root);
+
+    /** @reimp */
+    bool saveXML(QXmlStreamWriter *doc) const;
 
 private:
     int m_apiVersion;               //! The API version that the script uses
@@ -102,35 +114,27 @@ private:
     QScriptValue m_rgbMapStepCount; //! rgbMapStepCount() function
 
     /************************************************************************
-     * System & User Scripts
+     * Properties
      ************************************************************************/
 public:
-    /** Get a script by its public name */
-    static RGBScript script(const Doc * doc, const QString& name);
+    /** Return a list of the loaded script properties */
+    QList<RGBScriptProperty> properties();
 
-    /** Get available (user, system and custom) script names */
-    static QStringList scriptNames(const Doc * doc);
+    /** Return properties as strings */
+    QHash<QString, QString> propertiesAsStrings();
 
-    /** Get available (user, system and custom) scripts */
-    static QList <RGBScript> scripts(const Doc * doc);
+    /** Set a property to the given value */
+    bool setProperty(QString propertyName, QString value);
 
-    /** Get available scripts from the given directory path */
-    static QList <RGBScript> scripts(const Doc * doc, const QDir& path);
-
-    /** The system RGBScript directory */
-    static QDir systemScriptDirectory();
-
-    /** The user RGBScript directory */
-    static QDir userScriptDirectory();
-
-    /** Set the custom RGBScript directory */
-    static void setCustomScriptDirectory(const QString& path);
-
-    /** Get the custom RGBScript directory */
-    static QDir customScriptDirectory();
+    /** Read the value of the property with the given name */
+    QString property(QString propertyName) const;
 
 private:
-    static QDir s_customScriptDirectory;
+    /** Load the script properties if any is available */
+    bool loadProperties();
+
+private:
+    QList<RGBScriptProperty> m_properties; //! the script properties list
 };
 
 /** @} */
